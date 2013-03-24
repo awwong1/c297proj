@@ -1,0 +1,53 @@
+CMPUT 297, Winter 2013
+Alexander Wong, Michelle Naylor
+
+Title:
+
+Mouse Maze Simulation
+
+Description:
+
+Our project will use the arduino to simulate a mouse in a maze. 
+The mouse will be automated with our pathfinding algorithms, 
+however the user will have the ability to add and remove walls.
+We will be using the standard LCD screen, buttons, and joystick 
+to control our demonstration. 
+
+There will be two options; one option creates a blank template
+which allows the user to build and remove walls while the other
+option generates a valid maze for the mouse to move around in.
+There will be an option to remove and build walls. After the 
+mouse sucessfully reaches the cheese, the cheese will respawn 
+within the map at another location. 
+
+If there is no longer an available path from the mouse to the
+cheese, the cheese will attempt to teleport to a new location
+with an available path. However, if all paths are invalid 
+(ie, mouse is surrounded by walls), an led light will notify 
+users that no paths exist. Users will be able to reset the maze
+back to a blank slate, randomly generate a new valid maze, or
+add/remove walls to create a valid path again.
+
+This project takes upon our class notes of object oriented code,
+path finding, and queues. 
+
+Milestones:
+
+* Create the super class entity which contains the mouse,
+cheese and walls. Implement displaying the objects on the grid.
+
+* Implement pathfinding from the mouse to the cheese. Show the
+mouse moving from it's location to the cheese, respawning of 
+the cheese in a new location after the path is completed.
+
+* Implement user inputted walls (Path obstacles) by the joystick.
+Users may create impossible mazes.
+
+* Implement valid maze creation (Valid as in maze has no 'dead'
+areas that cannot be reached).
+
+* Implement map/maze reset, LED light for no path exists
+
+Delivery and Demonstration:
+
+The final 
