@@ -1,11 +1,16 @@
 /*
-
+  CMPUT 297 - Term Project
+  Alexander Wong, Michelle Naylor
+  
+  Mouse Maze Simulation
  */
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 #include <SD.h>
 #include <SPI.h>
+#include "mem_syms.h"
+#include "lcd_image.h"
 
 #define DEBUG    1      // Set this to 1 for debug serial printing
 #define joyhor   0      // Analog pin 0
@@ -26,7 +31,13 @@
 uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
+
 // Forward declarations of project functions go here
+void initialize();
+void initializejoy();
+void setup();
+void loop();
 
 void initialize() {
   Serial.begin(9600);
