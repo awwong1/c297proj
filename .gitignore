@@ -12,6 +12,9 @@
 *.la
 *.a
 
+# build-cli files
+build-cli/*
+
 # Buffer files
 *.txt~
 *.c~
