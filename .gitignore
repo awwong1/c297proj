@@ -17,4 +17,4 @@ build-cli/*
 
 # Buffer files
 *.txt~
-*.c~
+*.cpp~

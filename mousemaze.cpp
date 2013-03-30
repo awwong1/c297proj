@@ -5,6 +5,7 @@
   Mouse Maze Simulation
  */
 
+#include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 #include <SD.h>
@@ -44,7 +45,7 @@ void initialize() {
 
   pinMode(nopthled, OUTPUT);
 
-  tft.intR(INITR_REDTAB);
+  tft.initR(INITR_REDTAB);
   Serial.print("Initializing SD card... ");
   if (!SD.begin(SD_CS)) {
     Serial.println("Failed!");
