@@ -1,0 +1,9 @@
+Alex:
+- Wire up the arduinos, and initialize pins
+- Text area, User input 
+
+Michelle:
+- Initialize parent/child structs for objects
+- Pathfinding algorithms
+- Maze generation
+- Initialize grids (Grid size 8)
