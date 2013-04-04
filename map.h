@@ -5,7 +5,6 @@
 typedef struct {
   uint8_t x_coord;
   uint8_t y_coord;
-  uint8_t point_id;
   } point;
 
 
