@@ -32,9 +32,9 @@
 // Necessary global variables go here
 uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
-// the board is 15 x 15 points large
-#define map_x 15
-#define map_y 15
+// the board is 9 x 9 points large
+#define map_x 9
+#define map_y 9
 
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
@@ -74,9 +74,9 @@ point * initialize_map() {
   /*
     Initialize all points that will appear on the screen
    */
-  int len = map_x * map_y;
+  int num_points = map_x * map_y;
   point *point_array;
-  point_array = (typeof(point_array)) malloc(sizeof(*point_array) * len);
+  point_array = (typeof(point_array)) malloc(sizeof(*point_array) * num_points);
   // always check the return code of malloc
   if ( point_array == 0 ) {
     Serial.println("No memory!");
@@ -88,8 +88,8 @@ point * initialize_map() {
   
   for (int y = 0; y <= map_y; y++) {
     for (int x = 0; x <= map_x; x++) {
-      point_array[x + y + 1].x_coord = point_array[x + y].x_coord + 8;
-      point_array[x + y + 1].y_coord = point_array[x + y].y_coord + 8;
+      point_array[x + y + 1].x_coord = point_array[x + y].x_coord + 15;
+      point_array[x + y + 1].y_coord = point_array[x + y].y_coord + 15;
     }
   }
   return point_array;
