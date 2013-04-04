@@ -12,6 +12,7 @@
 #include <SPI.h>
 #include "mem_syms.h"
 #include "lcd_image.h"
+#include "map.h"
 
 #define DEBUG    1      // Set this to 1 for debug serial printing
 #define joyhor   0      // Analog pin 0
@@ -31,12 +32,16 @@
 // Necessary global variables go here
 uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
+// the board is 15 x 15 points large
+#define map_x 15
+#define map_y 15
+
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 // Forward declarations of project functions go here
 void initialize();
-void initializejoy();
+void initialize_joy();
 void setup();
 void loop();
 
@@ -55,10 +60,9 @@ void initialize() {
 
   tft.fillScreen(tft.Color565(0x00, 0x00, 0x00));
 
-  initializejoy();
 }
 
-void initializejoy() {
+void initialize_joy() {
   // Centers the joystick
   pinMode(joypush, INPUT);
   digitalWrite(joypush, HIGH);
@@ -66,8 +70,38 @@ void initializejoy() {
   joycenx = analogRead(joyhor);
 }
 
+point * initialize_map() {
+  /*
+    Initialize all points that will appear on the screen
+   */
+  int len = map_x * map_y;
+  point *point_array;
+  point_array = (typeof(point_array)) malloc(sizeof(*point_array) * len);
+  // always check the return code of malloc
+  if ( point_array == 0 ) {
+    Serial.println("No memory!");
+    while ( 1 ) {}
+  }
+  
+  point_array[1].x_coord = 0;
+  point_array[1].y_coord = 0;
+  
+  for (int y = 0; y <= map_y; y++) {
+    for (int x = 0; x <= map_x; x++) {
+      point_array[x + y + 1].x_coord = point_array[x + y].x_coord + 8;
+      point_array[x + y + 1].y_coord = point_array[x + y].y_coord + 8;
+    }
+  }
+  return point_array;
+}
+
 void setup() {
   initialize();
+  initialize_joy();
+  point* point_array = initialize_map();
+  for (int i = 0; i < map_x * map_y; i++) {
+    Serial.println(point_array[i].x_coord);
+  }
 }
 
 void loop() {
