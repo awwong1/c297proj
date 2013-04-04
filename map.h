@@ -5,18 +5,14 @@
 typedef struct {
   uint8_t x_coord;
   uint8_t y_coord;
-  } point;
+} point;
 
 
 // defines the edges which have been drawn
-/*  DOESN'T WORK.  WHY?? expected constructor, destructor, or 
-    type conversion before... error
-
-typdef struct {
+typedef struct {
   point pt1;
   point pt2;
 } edge;
 
-*/
 
 #endif

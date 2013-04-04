@@ -76,6 +76,7 @@ point * initialize_map() {
    */
   int num_points = map_x * map_y;
   point *point_array;
+  int count = 0;
   point_array = (typeof(point_array)) malloc(sizeof(*point_array) * num_points);
   // always check the return code of malloc
   if ( point_array == 0 ) {
@@ -83,13 +84,25 @@ point * initialize_map() {
     while ( 1 ) {}
   }
   
-  point_array[1].x_coord = 0;
-  point_array[1].y_coord = 0;
-  
-  for (int y = 0; y <= map_y; y++) {
-    for (int x = 0; x <= map_x; x++) {
-      point_array[x + y + 1].x_coord = point_array[x + y].x_coord + 15;
-      point_array[x + y + 1].y_coord = point_array[x + y].y_coord + 15;
+  point_array[0].x_coord = 0;
+  point_array[0].y_coord = 0;
+
+  for (int y = 0; y < map_y; y++) {
+      int y_coord =  y * 15;
+    for (int x = 0; x < map_x; x++) {
+      int x_coord = x * 15;
+      point_array[count].x_coord = x_coord;
+      point_array[count].y_coord = y_coord;
+
+      if (DEBUG == 1) {
+	Serial.print(count);
+	Serial.print(": ");
+	Serial.print(point_array[count].x_coord);
+	Serial.print(", ");
+	Serial.println(point_array[count].y_coord);
+      }
+
+      count++;
     }
   }
   return point_array;
@@ -99,9 +112,6 @@ void setup() {
   initialize();
   initialize_joy();
   point* point_array = initialize_map();
-  for (int i = 0; i < map_x * map_y; i++) {
-    Serial.println(point_array[i].x_coord);
-  }
 }
 
 void loop() {
