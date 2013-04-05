@@ -38,6 +38,7 @@ uint16_t joyceny;   // center value for y, should be around 512
 point * point_array;
 point mouse;
 point cheese;
+wall * wall_array;
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
@@ -95,9 +96,10 @@ point * initialize_map() {
       int x_coord = x * 15;
       point_array[count].x_coord = x_coord;
       point_array[count].y_coord = y_coord;
+      point_array[count].num = count;
 
       if (DEBUG == 1) {
-	Serial.print(count);
+	Serial.print(point_array[count].num);
 	Serial.print(": ");
 	Serial.print(point_array[count].x_coord);
 	Serial.print(", ");
@@ -110,17 +112,67 @@ point * initialize_map() {
 }
 
 void initialize_cheese() {
-  int x_coord = random(128) % 7;
-  int y_coord = random(128%7;
+  /*
+    place the cheese randomly on board, but in middle of box
+  */
+  int x_coord = rand() % 128;
+  int y_coord = rand() % 128;
+  // need to be a multiple of 7
+  x_coord = x_coord / 7;
+  y_coord = y_coord / 7;
+}
+
+void initialize_rand_walls() {
+  /*
+    place walls randomly in map
+   */
+
+  // FIX MATH HERE!!
+
+  // malloc enough for every wall in the map
+  wall_array = (typeof(wall_array)) malloc(sizeof(*wall_array) * 100);
+
+  uint8_t pt1, pt2;
+  // pick random no. of walls to draw, within reason
+  uint8_t no_walls = rand() % 50;
+
+  if (DEBUG == 1) {
+    Serial.print("Printing walls: ");
+    Serial.println(no_walls);
+  }
+
+  // choose random pt1
+  // pt2 must be pt1 +- 1 or +- 10
+  for (int i = 0; i < no_walls; i++) {
+    pt1 = rand() % 81;
+    uint8_t options [4] = {pt1 - 1, pt1 + 1, pt1 - 10, pt1 + 10};
+    pt2 = options[rand() % sizeof(options)/sizeof(options[0])];
+
+    wall_array[i].pt1 = point_array[pt1];
+    wall_array[i].pt2 = point_array[pt2];
+
+    if (DEBUG == 1) {
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.print(wall_array[i].pt1.num);
+      Serial.print(", ");
+      Serial.println(wall_array[i].pt2.num);
+      }
+  }
+
 }
 
 void setup() {
   initialize();
   initialize_joy();
-  initialize_cheese();
   point_array = initialize_map();
-  mouse.x_coord = 0;
-  mouse.y_coord = 0;
+  initialize_cheese();
+
+  // put mouse in middle of top right corner box
+  mouse.x_coord = 7;
+  mouse.y_coord = 7;
+
+  initialize_rand_walls();
 }
 
 void loop() {
