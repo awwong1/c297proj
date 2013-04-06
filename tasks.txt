@@ -5,5 +5,7 @@ Alex:
 Michelle:
 - Initialize parent/child structs for objects
 - Pathfinding algorithms
-- Maze generation
+- Maze generation: 
+  - how random is random?
+  - how many edges are there total? my basic math blows.
 - Initialize grids (Grid size 8)
