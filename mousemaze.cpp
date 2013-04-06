@@ -57,6 +57,12 @@ void draw_corners();
 void draw_walls();
 void setup();
 void loop();
+uint8_t * bfs(entity mouse, entity cheese);
+uint8_t * adj_to(uint8_t cur, uint8_t * adj);
+queue* create_queue(uint8_t maxElements);
+void dequeue(queue *q);
+void enqueue(queue *q, uint8_t element);
+
 
 uint8_t getSeed(){
   uint8_t seed = 0;
@@ -245,7 +251,7 @@ void random_cheese() {
   }  
 }
 
-uint8_t[] bfs(entity mouse, entity cheese, uint8_t[] visited) {
+uint8_t* bfs(entity mouse, entity cheese) {
   /*
     performs a breadth first search from mouse to cheese
     returns array with path
@@ -260,14 +266,11 @@ uint8_t[] bfs(entity mouse, entity cheese, uint8_t[] visited) {
   while(q->size) {
     cur = q->elements[q->front];
     if (cur == cheese.cur_pos) {
-      return; 
+      return visited; 
     }
-
-    
   }
-    
-  free(queue);
-  return path;
+  free(q);
+  return visited;
 }
 
 uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
@@ -283,14 +286,14 @@ uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
   free(options);
 }
 
-queue* create_queue(int maxElements) {
+queue* create_queue(uint8_t maxElements) {
   /*
     Creates queue for use in bfs
    */
   queue *q;
   q = (queue*) malloc(sizeof(queue));
   
-  q->elements = (int *) malloc(sizeof(int)*maxElements);
+  q->elements = (uint8_t *) malloc(sizeof(int)*maxElements);
   q->size = 0;
   q->capacity = maxElements;
   q->front = 0;
@@ -299,7 +302,7 @@ queue* create_queue(int maxElements) {
   return q;
 }
 
-void dequeue(Queue q*) {
+void dequeue(queue *q) {
   /*
     dequeues an item.  To be used in bfs.
    */
@@ -321,7 +324,7 @@ void dequeue(Queue q*) {
 void enqueue(queue *q, uint8_t element) {
   // if queue is full, return
   if (q->size == q->capacity) {
-    break;
+    Serial.println("q at capacity");
   }
   else {
     q->size++;
