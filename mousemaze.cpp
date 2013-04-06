@@ -21,7 +21,7 @@
 #define joyerr   40     // Joystick discrepancy
 
 #define nopthled 13     // No Path LED: Digital pin 13
-#define mazeclr  12     // Clear maze button: Digital pin 12
+#define buttonpause 12 // Pause button: Digital pin 12
 
 // Standard U of A Library Settings, Assume Atmel Mega SPI pins
 #define SD_CS    5  // Chip select line for SD card
@@ -37,6 +37,7 @@
 uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 uint16_t num_walls = 0;
+uint8_t pause;
 point * point_array;
 entity mouse;
 entity cheese;
@@ -494,8 +495,35 @@ void setup() {
 
 void loop() {
   // Two different states; One for wall placement, One for mouse cycle
-  random_cheese();
-  draw_cheese();
-  draw_mouse();
-  delay(500);
+  // pause = 0; Simulate mouse finding cheese
+  // pause = 1; Editor mode
+  uint8_t trigger = 0;
+  while (digitalRead(buttonpause) == 0) {
+    if (!trigger){
+      if (pause) {
+	pause = 0;
+      }
+      else {
+	pause = 1;
+      }
+    }
+    trigger = 1;
+  }
+  
+  if (pause){
+    if(trigger) {
+      drawtext("Editor mode...");
+      trigger = 0;
+    }
+  }
+  else if (!pause) {
+    if(trigger) {
+      drawtext("Simulating...");
+      trigger = 0;
+    }
+    random_cheese();
+    draw_cheese();
+    draw_mouse();
+  }
+  trigger = 0;
 }
