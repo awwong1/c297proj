@@ -45,13 +45,16 @@ wall * wall_array;
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 // Forward declarations of project functions go here
+uint8_t getSeed();
 void initialize();
 void initialize_joy();
+void initialize_cheese();
 point * initialize_map();
+void initialize_rand_walls();
+uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
+void random_cheese();
 void draw_corners();
 void draw_walls();
-void initialize_cheese();
-void initialize_rand_walls();
 void setup();
 void loop();
 
@@ -104,26 +107,14 @@ void initialize_cheese() {
   cheese.y_coord = 128 - 13;
 }
 
-void random_cheese() {
-  /*
-    Place the cheese in a random location on the map
-    If the new location is the same as the mouse, 
-    jump to a new location
-   */
-  randomSeed(getSeed());
-
-
-}
-
 point * initialize_map() {
   /*
     Initialize all points that will appear on the screen
    */
+  
   int num_points = map_x * map_y;
   int count = 0;
   point_array = (typeof(point_array)) malloc(sizeof(*point_array) * num_points);
-
-  // always check the return code of malloc
   if ( point_array == 0 ) {
     Serial.println("No memory!");
     while ( 1 ) {}
@@ -140,21 +131,112 @@ point * initialize_map() {
       point_array[count].x_coord = x_coord;
       point_array[count].y_coord = y_coord;
       point_array[count].num = count;
-
-      if (DEBUG == 1) {
-	Serial.print(point_array[count].num);
-	Serial.print(": ");
-	Serial.print(point_array[count].x_coord);
-	Serial.print(", ");
-	Serial.println(point_array[count].y_coord);
-      }
       count++;
     }
   }
-
+  
   // This is placed here for visuals. Also, walls draw over corners currently.
   draw_corners();
   return point_array;
+}
+
+
+void initialize_rand_walls() {
+  /*
+    place walls randomly in map
+   */
+
+  // Maximum number of walls is 8 * 9 * 2 = 144 walls
+  // malloc enough for every wall in the map
+  wall_array = (typeof(wall_array)) malloc(sizeof(*wall_array) * 144);
+  uint8_t pt1, pt2;
+  randomSeed(getSeed());
+  uint8_t no_walls = random(144);
+  
+  if (DEBUG == 1) {
+    Serial.print("Printing walls, Amount: ");
+    Serial.println(no_walls);
+  }
+  
+  // For every point 1, point 2 must be the x/y adjacent point
+  // Usually can be +-1 or +-9, with the exception of the edges
+  for (uint8_t i = 0; i < no_walls; i++){
+    uint8_t * options;
+    options = (typeof(options)) malloc(sizeof(* options) * 4);
+    // always check the return code of malloc
+    if ( options == 0 ) {
+      Serial.println("No memory!");
+      while ( 1 ) {}
+    }
+    
+    pt1 = random(81);
+    options = get_options(pt1, options);
+    while(1) {
+      uint8_t choice = random(4);
+      pt2 = options[choice];
+      if (pt2 != 255) {
+	break;
+      }
+    }
+    
+    wall_array[i].pt1 = point_array[pt1];
+    wall_array[i].pt2 = point_array[pt2];
+    
+    free(options);
+
+    if (DEBUG == 1) {
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.print(wall_array[i].pt1.num);
+      Serial.print(", ");
+      Serial.println(wall_array[i].pt2.num);
+    }
+    num_walls++;
+  }
+}
+
+uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
+  uint8_t leftedge = 0;
+  uint8_t rightedge = 0;
+  uint8_t topedge = 0;
+  uint8_t botedge = 0;
+
+  if (pointvalue < 9) { topedge = 1; }
+  if (pointvalue > 71) { botedge = 1; }
+  if ((pointvalue % 9) == 0) { leftedge = 1; }
+  if ((pointvalue % 9) == 8) { rightedge = 1;}
+    
+  for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
+    if (!topedge) {
+      options[wallchoice] = pointvalue - 9;
+      topedge = 1;
+    }
+    else if (!botedge) {
+      options[wallchoice] = pointvalue + 9;
+      botedge = 1;
+    }
+    else if (!leftedge) {
+      options[wallchoice] = pointvalue - 1;
+      leftedge = 1;
+    }
+    else if (!rightedge) {
+      options[wallchoice] = pointvalue + 1;
+      rightedge = 1;
+    }
+    else {
+      options[wallchoice] = 255;
+    }
+  }
+  return options;
+}
+
+void random_cheese() {
+  /*
+    Place the cheese in a random location on the map
+    If the new location is the same as the mouse, 
+    jump to a new location
+   */
+  randomSeed(getSeed());
 }
 
 void draw_corners() {
@@ -177,103 +259,6 @@ void draw_mouse() {
 
 void draw_cheese() {
   tft.fillCircle(cheese.x_coord, cheese.y_coord, 4, ST7735_YELLOW);
-}
-
-void initialize_rand_walls() {
-  /*
-    place walls randomly in map
-   */
-
-  // Maximum number of walls is 8 * 9 * 2 = 144 walls
-  // malloc enough for every wall in the map
-  wall_array = (typeof(wall_array)) malloc(sizeof(*wall_array) * 144);
-  uint8_t pt1, pt2;
-  randomSeed(getSeed());
-  uint8_t no_walls = random(144);
-
-  if (DEBUG == 1) {
-    Serial.print("Printing walls, Amount: ");
-    Serial.println(no_walls);
-  }
-
-  // For every point 1, point 2 must be the x/y adjacent point
-  // Usually can be +-1 or +-9, with the exception of the edges
-  for (int i = 0; i < no_walls; i++) {
-    uint8_t leftedge = 0;
-    uint8_t rightedge = 0;
-    uint8_t topedge = 0;
-    uint8_t botedge = 0;
-    
-    randomSeed(getSeed());
-    pt1 = random(81);
-    
-    // Edge case checker, set boolean values
-    if (pt1 < 9) {
-      topedge = 1;
-    }
-    if (pt1 > 71) {
-      botedge = 1;
-    }
-    if ((pt1 % 9) == 0) {
-      leftedge = 1;
-    }
-    if ((pt1 % 9) == 8) {
-      rightedge = 1;
-    }
-    
-    uint8_t * options;
-
-    options = (typeof(options)) malloc(sizeof(* options) * 4);
-
-    // always check the return code of malloc
-    if ( options == 0 ) {
-      Serial.println("No memory!");
-      while ( 1 ) {}
-    }
-    
-    for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
-      if (!topedge) {
-	options[wallchoice] = pt1 - 9;
-	topedge = 1;
-      }
-      else if (!botedge) {
-	options[wallchoice] = pt1 + 9;
-	botedge = 1;
-      }
-      else if (!leftedge) {
-	options[wallchoice] = pt1 - 1;
-	leftedge = 1;
-      }
-      else if (!rightedge) {
-	options[wallchoice] = pt1 + 1;
-	rightedge = 1;
-      }
-      else {
-	options[wallchoice] = 255;
-      }
-    }
-    while(1) {
-      uint8_t choice = random(4);
-      pt2 = options[choice];
-      if (pt2 != 255) {
-	break;
-      }
-    }
-    
-    wall_array[i].pt1 = point_array[pt1];
-    wall_array[i].pt2 = point_array[pt2];
-
-    free(options);
-
-    if (DEBUG == 1) {
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.print(wall_array[i].pt1.num);
-      Serial.print(", ");
-      Serial.println(wall_array[i].pt2.num);
-    }
-    num_walls++;
-  }
 }
 
 void setup() {
