@@ -163,7 +163,7 @@ void initialize_rand_walls() {
   // malloc enough for every wall in the map
   uint8_t pt1, pt2;
   randomSeed(getSeed());
-  uint8_t no_walls = random(144);
+  uint8_t no_walls = 50;
   if (DEBUG) {
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
@@ -181,11 +181,23 @@ void initialize_rand_walls() {
     }
     // Choose a random cell from 0 to 63 inclusive, 
     // Of that cell, pick a random wall from 0 to 1 inclusive
-    pt1 = random(63);
+    
+    // Make sure that pt1 is not on the right edge:
+    pt1 = random(71);
+    while(1) {
+      if (pt1 % 9 == 8) {
+	pt1 = random(63);
+      }
+      else {
+	break;
+      }
+    }
+    
     options = get_options(pt1, options);
     uint8_t wallchoice;
+    
     while(1) {
-      wallchoice = random(4);
+      wallchoice = random(2);
       pt2 = options[wallchoice];
       if (DEBUG) {
 	Serial.print("Wallchoice: ");
@@ -237,17 +249,18 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
   if (pointvalue > 71) { botedge = 1; }
   if ((pointvalue % 9) == 0) { leftedge = 1; }
   if ((pointvalue % 9) == 8) { rightedge = 1;}
-    
-  for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
-    if (!rightedge && !botedge){
-      options[wallchoice] = pointvalue + 1;
-      continue;
-    }
-    else if (!botedge && !rightedge) {
+  
+  for (uint8_t wallchoice = 0; wallchoice < 2; wallchoice++) {
+    if (!botedge) {
       options[wallchoice] = pointvalue + 9;
+      botedge = 1;
       continue;
     }
-    // dummy variable: 255 indicates non-existence
+    else if (!rightedge) {
+      options[wallchoice] = pointvalue + 1;
+      rightedge = 1;
+      continue;
+    }
     options[wallchoice] = 255;
   }
   return options;
@@ -507,4 +520,5 @@ void loop() {
     draw_mouse();
   }
   trigger = 0;
+  delay(100);
 }
