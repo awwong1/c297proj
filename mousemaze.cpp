@@ -165,6 +165,10 @@ void initialize_rand_walls() {
   randomSeed(getSeed());
   uint8_t no_walls = 50;
   if (DEBUG) {
+    Serial.print("Stack size start initialize_rand_walls(): ");
+    Serial.println(STACK_SIZE);
+    Serial.print("Available memory: ");
+    Serial.println(AVAIL_MEM);
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
   }
@@ -227,6 +231,8 @@ void initialize_rand_walls() {
       Serial.print(", ");
       Serial.print(wall_array[pt1][wallchoice].pt2.y_coord);
       Serial.println(")");
+      Serial.print("Avail mem: ");
+      Serial.println(AVAIL_MEM);
     }
     num_walls++;
   }
@@ -285,13 +291,16 @@ void random_cheese() {
   }  
 }
 
-uint8_t* bfs(entity mouse, entity cheese) {
+uint8_t* bfs(queue * q, entity mouse, entity cheese) {
   /*
     performs a breadth first search from mouse to cheese
     returns array with path
-   */
-  queue *q = create_queue(64);
-  uint8_t visited[64] = {0};
+  */
+  uint8_t * adj;
+  uint8_t visited[81] = {0};
+  adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
+  q = create_queue(64);
+  uint8_t count = 0;
   uint8_t cur;
   // mouse has visited vertex it is now at;
   //  visited[mouse.cur_pos] = 1;
@@ -300,10 +309,23 @@ uint8_t* bfs(entity mouse, entity cheese) {
   while(q->size) {
     cur = q->elements[q->front];
     if (cur == cheese.cur_pos) {
-      return visited; 
+      return visited;
+    }
+    // check neighbours
+    adj = adj_to(cur, adj);
+    for (int i = 0; i < sizeof(adj)/sizeof(adj[0]); i++) {
+      // if not in visited, add to queue
+      for (int j = 0; j < sizeof(visited)/sizeof(visited[0]); j++) {
+	if (visited[j] != cur) {
+	  visited[count] = cur;
+	  count++;
+	  enqueue(q, adj[i]);
+	}
+      }
     }
   }
-  free(q);
+  // DON"T FORGET TO FREE q MICHELLE LOOK HERE
+  free(adj);
   return visited;
 }
 
@@ -311,13 +333,40 @@ uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
   /*
     returns vertices that are adjacent to cur
    */
-  uint8_t * options;
-  options = (typeof(options)) malloc(sizeof(* options) * 4);
-  options = get_options(cur, options);
-  for (int i = 0; i < 4; i++) {
-      
+  uint8_t count = 0;
+
+  // check left vertex (cur's left wall)
+  if (sizeof(wall_array[cur][1]) == 0) {
+    adj[count] = cur - 1;
+    count++;
   }
-  free(options);
+  // check top vertex (cur's top wall)
+  if (sizeof(wall_array[cur][0]) == 0) {
+    adj[count] = cur - 9;
+    count++;
+  }
+  // check bottom vertex (cur + 9)'s top wall
+  if (sizeof(wall_array[cur + 9][0]) == 0) {
+    adj[count] = cur + 9;
+    count++;
+  }
+
+  // check right vertex (cur + 1)'s left wall
+  if (sizeof(wall_array[cur + 9][1]) == 0) {
+    adj[count] = cur + 1;
+    count++;
+  }
+
+  if (DEBUG) {
+    Serial.print("Printing cells adjacent to ");
+    Serial.println(cur);
+    for (int i = 0; i < sizeof(adj)/sizeof(adj[0]); i++) {
+      Serial.print(adj[i]);
+      Serial.print(", ");
+    }
+    Serial.println("");
+  }
+  return adj;
 }
 
 queue* create_queue(uint8_t maxElements) {
@@ -347,7 +396,7 @@ void dequeue(queue *q) {
     q->size--;
     q->front++;
 
-    // allow for circular filling of queue
+   // allow for circular filling of queue
     if(q->front == q->capacity) {
       q->front = 0;
     }
