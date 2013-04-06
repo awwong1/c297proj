@@ -18,10 +18,10 @@
 #define joyhor   0      // Analog pin 0
 #define joyver   1      // Analog pin 1
 #define joypush  11     // Digital pin 11
-#define joyerr   50     // Joystick discrepancy
+#define joyerr   40     // Joystick discrepancy
 
 #define nopthled 13     // No Path LED: Digital pin 13
-#define buttonpause 12  // Pause button: Digital pin 12
+#define buttonpause 12 // Pause button: Digital pin 12
 
 // Standard U of A Library Settings, Assume Atmel Mega SPI pins
 #define SD_CS    5  // Chip select line for SD card
@@ -60,6 +60,7 @@ void drawtext(char *text);
 
 uint8_t user_walls();
 uint8_t yes_or_no();
+
 
 void setup();
 void loop();
@@ -101,8 +102,6 @@ void initialize_joy() {
   digitalWrite(joypush, HIGH);
   joyceny = analogRead(joyver);
   joycenx = analogRead(joyhor);
-  // Initialize the pause button
-  digitalWrite(buttonpause, HIGH);
 }
 
 void initialize_mouse() {
@@ -164,6 +163,7 @@ void initialize_rand_walls() {
   uint8_t pt1, pt2;
   randomSeed(getSeed());
   uint8_t no_walls = random(144);
+
   if (DEBUG) {
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
@@ -185,7 +185,7 @@ void initialize_rand_walls() {
     options = get_options(pt1, options);
     uint8_t wallchoice;
     while(1) {
-      wallchoice = random(4);
+      wallchoice = random(2);
       pt2 = options[wallchoice];
       if (DEBUG) {
 	Serial.print("Wallchoice: ");
@@ -238,13 +238,18 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
   if ((pointvalue % 9) == 0) { leftedge = 1; }
   if ((pointvalue % 9) == 8) { rightedge = 1;}
     
-  for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
-    if (!rightedge && !botedge){
+  for (uint8_t wallchoice = 0; wallchoice < 2; wallchoice++) {  
+    if (rightedge) {
+      options[wallchoice] = 255;
+    }
+    if (!rightedge) {
       options[wallchoice] = pointvalue + 1;
+      rightedge = 1;
       continue;
     }
-    else if (!botedge && !rightedge) {
+    else if (!botedge) {
       options[wallchoice] = pointvalue + 9;
+      botedge = 1;
       continue;
     }
     // dummy variable: 255 indicates non-existence
@@ -279,7 +284,10 @@ uint8_t* bfs(entity mouse, entity cheese) {
    */
   queue *q = create_queue(64);
   uint8_t visited[64] = {0};
+  uint8_t * adjacent;
   uint8_t cur;
+
+  adjacent = (typeof(adjacent)) malloc(sizeof(* adjacent) * 4);
   // mouse has visited vertex it is now at;
   //  visited[mouse.cur_pos] = 1;
   enqueue(q, mouse.cur_pos);
@@ -289,6 +297,13 @@ uint8_t* bfs(entity mouse, entity cheese) {
     if (cur == cheese.cur_pos) {
       return visited; 
     }
+    // check neighbours
+    //    adjacent = adj_to(cur, adj);
+    /*
+    for (int i = 0; i < ; i++) {
+      
+    }
+    */
   }
   free(q);
   return visited;
@@ -296,15 +311,20 @@ uint8_t* bfs(entity mouse, entity cheese) {
 
 uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
   /*
-    returns vertices that are adjacent to cur
+    returns an array of vertices that are adjacent to cur
    */
-  uint8_t * options;
-  options = (typeof(options)) malloc(sizeof(* options) * 4);
-  options = get_options(cur, options);
-  for (int i = 0; i < 4; i++) {
-      
-  }
-  free(options);
+
+  //  uint8_t * adj;
+  adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
+  // check left vertex (cur's left wall)
+
+  // check top vertex (cur's top wall)
+
+  // check bottom vertex (cur + 9)'s top wall
+
+  // check right vertex (cur + 1)'s left wall
+
+  free(adj);
 }
 
 queue* create_queue(uint8_t maxElements) {
@@ -471,6 +491,7 @@ void setup() {
   draw_corners();
   draw_mouse();
   draw_cheese();
+
   pause = 0;
 }
 
@@ -479,6 +500,7 @@ void loop() {
   // pause = 0; Simulate mouse finding cheese
   // pause = 1; Editor mode
   uint8_t trigger = 0;
+  
   while (digitalRead(buttonpause) == 0) {
     if (!trigger){
       if (pause) {
