@@ -18,10 +18,10 @@
 #define joyhor   0      // Analog pin 0
 #define joyver   1      // Analog pin 1
 #define joypush  11     // Digital pin 11
-#define joyerr   40     // Joystick discrepancy
+#define joyerr   50     // Joystick discrepancy
 
 #define nopthled 13     // No Path LED: Digital pin 13
-#define mazeclr  12     // Clear maze button: Digital pin 12
+#define buttonpause 12  // Pause button: Digital pin 12
 
 // Standard U of A Library Settings, Assume Atmel Mega SPI pins
 #define SD_CS    5  // Chip select line for SD card
@@ -37,6 +37,7 @@
 uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 uint16_t num_walls = 0;
+uint8_t pause;
 point * point_array;
 entity mouse;
 entity cheese;
@@ -55,6 +56,11 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
 void random_cheese();
 void draw_corners();
 void draw_walls();
+void drawtext(char *text);
+
+uint8_t user_walls();
+uint8_t yes_or_no();
+
 void setup();
 void loop();
 
@@ -89,6 +95,8 @@ void initialize_joy() {
   digitalWrite(joypush, HIGH);
   joyceny = analogRead(joyver);
   joycenx = analogRead(joyhor);
+  // Initialize the pause button
+  digitalWrite(buttonpause, HIGH);
 }
 
 void initialize_mouse() {
@@ -292,26 +300,102 @@ void draw_cheese() {
   tft.fillCircle(xval, yval, 4, ST7735_YELLOW);
 }
 
+void drawtext(char *text) {
+  tft.fillRect(0, 128, 128, 32, ST7735_BLACK);
+  tft.setCursor(0, 128);
+  tft.setTextColor(ST7735_WHITE);
+  tft.setTextWrap(true);
+  tft.print(text);
+}
+
+uint8_t user_walls(){
+  drawtext("Init random walls?");
+  return yes_or_no();
+}
+
+uint8_t yes_or_no(){
+  tft.setCursor(78, 138);
+  tft.print("N");
+  tft.setCursor(26, 138);
+  tft.print("Y");
+  uint8_t selection = 1;
+  while(1) {
+    // Move cursor left
+    if(analogRead(joyhor)>(joycenx+joyerr)) {
+      selection = 1;
+    }
+    // Move cursor right
+    if(analogRead(joyhor)<(joycenx-joyerr)) {
+      selection = 0;
+    }
+    if (!selection) {
+      tft.drawRect(76, 136, 9, 11, ST7735_MAGENTA);
+      tft.drawRect(24, 136, 9, 11, ST7735_BLACK);
+    }
+    if (selection) {
+      tft.drawRect(76, 136, 9, 11, ST7735_BLACK);
+      tft.drawRect(24, 136, 9, 11, ST7735_MAGENTA);
+    }
+    if(digitalRead(joypush) == 0) {
+      return selection;
+    }
+  }
+}
+
 void setup() {
   initialize();
   initialize_joy();
   point_array = initialize_map();
     
   initialize_mouse();
-  initialize_cheese();
-
-  initialize_rand_walls();
-
+  initialize_cheese();  
+  
+  if (user_walls()) {
+    initialize_rand_walls();
+    drawtext("Initializing walls...");
+    delay(200);
+    drawtext("Simulating...");
+  } else {
+    drawtext("Simulating...");
+  }
   draw_walls();
   draw_corners();
   draw_mouse();
   draw_cheese();
+  pause = 0;
 }
 
 void loop() {
   // Two different states; One for wall placement, One for mouse cycle
-  random_cheese();
-  draw_cheese();
-  draw_mouse();
-  delay(500);
+  // pause = 0; Simulate mouse finding cheese
+  // pause = 1; Editor mode
+  uint8_t trigger = 0;
+  while (digitalRead(buttonpause) == 0) {
+    if (!trigger){
+      if (pause) {
+	pause = 0;
+      }
+      else {
+	pause = 1;
+      }
+    }
+    trigger = 1;
+  }
+  
+  if (pause){
+    if(trigger) {
+      drawtext("Editor mode...");
+      trigger = 0;
+    }
+  }
+  else if (!pause) {
+    if(trigger) {
+      drawtext("Simulating...");
+      trigger = 0;
+    }
+    random_cheese();
+    draw_cheese();
+    draw_mouse();
+  }
+  trigger = 0;
 }
