@@ -18,10 +18,10 @@
 #define joyhor   0      // Analog pin 0
 #define joyver   1      // Analog pin 1
 #define joypush  11     // Digital pin 11
-#define joyerr   50     // Joystick discrepancy
+#define joyerr   40     // Joystick discrepancy
 
 #define nopthled 13     // No Path LED: Digital pin 13
-#define buttonpause 12  // Pause button: Digital pin 12
+#define mazeclr  12     // Clear maze button: Digital pin 12
 
 // Standard U of A Library Settings, Assume Atmel Mega SPI pins
 #define SD_CS    5  // Chip select line for SD card
@@ -37,7 +37,6 @@
 uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 uint16_t num_walls = 0;
-uint8_t pause;
 point * point_array;
 entity mouse;
 entity cheese;
@@ -56,11 +55,6 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
 void random_cheese();
 void draw_corners();
 void draw_walls();
-void drawtext(char *text);
-
-uint8_t user_walls();
-uint8_t yes_or_no();
-
 void setup();
 void loop();
 uint8_t * bfs(entity mouse, entity cheese);
@@ -101,8 +95,6 @@ void initialize_joy() {
   digitalWrite(joypush, HIGH);
   joyceny = analogRead(joyver);
   joycenx = analogRead(joyhor);
-  // Initialize the pause button
-  digitalWrite(buttonpause, HIGH);
 }
 
 void initialize_mouse() {
@@ -164,6 +156,7 @@ void initialize_rand_walls() {
   uint8_t pt1, pt2;
   randomSeed(getSeed());
   uint8_t no_walls = random(144);
+
   if (DEBUG) {
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
@@ -284,7 +277,10 @@ uint8_t* bfs(entity mouse, entity cheese) {
    */
   queue *q = create_queue(64);
   uint8_t visited[64] = {0};
+  uint8_t * adjacent;
   uint8_t cur;
+
+  adjacent = (typeof(adjacent)) malloc(sizeof(* adjacent) * 4);
   // mouse has visited vertex it is now at;
   //  visited[mouse.cur_pos] = 1;
   enqueue(q, mouse.cur_pos);
@@ -294,6 +290,11 @@ uint8_t* bfs(entity mouse, entity cheese) {
     if (cur == cheese.cur_pos) {
       return visited; 
     }
+    // check neighbours
+    adjacent = adj_to(cur, adj);
+    for (int i = 0; i < ; i++) {
+      
+    }
   }
   free(q);
   return visited;
@@ -301,15 +302,20 @@ uint8_t* bfs(entity mouse, entity cheese) {
 
 uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
   /*
-    returns vertices that are adjacent to cur
+    returns an array of vertices that are adjacent to cur
    */
-  uint8_t * options;
-  options = (typeof(options)) malloc(sizeof(* options) * 4);
-  options = get_options(cur, options);
-  for (int i = 0; i < 4; i++) {
-      
-  }
-  free(options);
+
+  uint8_t * adj;
+  adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
+  // check left vertex (cur's left wall)
+
+  // check top vertex (cur's top wall)
+
+  // check bottom vertex (cur + 9)'s top wall
+
+  // check right vertex (cur + 1)'s left wall
+
+  free(adj);
 }
 
 queue* create_queue(uint8_t maxElements) {
@@ -415,48 +421,6 @@ void draw_cheese() {
   tft.fillCircle(xval, yval, 4, ST7735_YELLOW);
 }
 
-void drawtext(char *text) {
-  tft.fillRect(0, 128, 128, 32, ST7735_BLACK);
-  tft.setCursor(0, 128);
-  tft.setTextColor(ST7735_WHITE);
-  tft.setTextWrap(true);
-  tft.print(text);
-}
-
-uint8_t user_walls(){
-  drawtext("Init random walls?");
-  return yes_or_no();
-}
-
-uint8_t yes_or_no(){
-  tft.setCursor(78, 138);
-  tft.print("N");
-  tft.setCursor(26, 138);
-  tft.print("Y");
-  uint8_t selection = 1;
-  while(1) {
-    // Move cursor left
-    if(analogRead(joyhor)>(joycenx+joyerr)) {
-      selection = 1;
-    }
-    // Move cursor right
-    if(analogRead(joyhor)<(joycenx-joyerr)) {
-      selection = 0;
-    }
-    if (!selection) {
-      tft.drawRect(76, 136, 9, 11, ST7735_MAGENTA);
-      tft.drawRect(24, 136, 9, 11, ST7735_BLACK);
-    }
-    if (selection) {
-      tft.drawRect(76, 136, 9, 11, ST7735_BLACK);
-      tft.drawRect(24, 136, 9, 11, ST7735_MAGENTA);
-    }
-    if(digitalRead(joypush) == 0) {
-      return selection;
-    }
-  }
-}
-
 void setup() {
   initialize();
   initialize_joy();
@@ -476,40 +440,12 @@ void setup() {
   draw_corners();
   draw_mouse();
   draw_cheese();
-  pause = 0;
 }
 
 void loop() {
   // Two different states; One for wall placement, One for mouse cycle
-  // pause = 0; Simulate mouse finding cheese
-  // pause = 1; Editor mode
-  uint8_t trigger = 0;
-  while (digitalRead(buttonpause) == 0) {
-    if (!trigger){
-      if (pause) {
-	pause = 0;
-      }
-      else {
-	pause = 1;
-      }
-    }
-    trigger = 1;
-  }
-  
-  if (pause){
-    if(trigger) {
-      drawtext("Editor mode...");
-      trigger = 0;
-    }
-  }
-  else if (!pause) {
-    if(trigger) {
-      drawtext("Simulating...");
-      trigger = 0;
-    }
-    random_cheese();
-    draw_cheese();
-    draw_mouse();
-  }
-  trigger = 0;
+  random_cheese();
+  draw_cheese();
+  draw_mouse();
+  delay(500);
 }
