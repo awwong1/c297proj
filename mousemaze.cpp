@@ -236,7 +236,17 @@ void random_cheese() {
     If the new location is the same as the mouse, 
     jump to a new location
    */
-  randomSeed(getSeed());
+  while(1) {
+    uint8_t location = random(81);
+    if (location > 71 || (location % 9 == 8)) {
+      continue;
+    }
+    else {
+      cheese.x_coord = point_array[location].x_coord + 7;
+      cheese.y_coord = point_array[location].y_coord + 7;
+      break;
+    }
+  }  
 }
 
 void draw_corners() {
@@ -279,5 +289,7 @@ void setup() {
 
 void loop() {
   // Two different states; One for wall placement, One for mouse cycle
-  
+  random_cheese();
+  draw_cheese();
+  delay(500);
 }
