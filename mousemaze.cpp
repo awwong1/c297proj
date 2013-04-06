@@ -239,22 +239,12 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
   if ((pointvalue % 9) == 8) { rightedge = 1;}
     
   for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
-    if (!topedge) {
-      // options[wallchoice] = pointvalue - 9;
-      topedge = 1;
-    }
-    else if (!botedge) {
-      options[wallchoice] = pointvalue + 9;
-      botedge = 1;
+    if (!rightedge && !botedge){
+      options[wallchoice] = pointvalue + 1;
       continue;
     }
-    else if (!leftedge) {
-      // options[wallchoice] = pointvalue - 1;
-      leftedge = 1;
-    }
-    else if (!rightedge) {
-      options[wallchoice] = pointvalue + 1;
-      rightedge = 1;
+    else if (!botedge && !rightedge) {
+      options[wallchoice] = pointvalue + 9;
       continue;
     }
     // dummy variable: 255 indicates non-existence
@@ -471,9 +461,8 @@ void setup() {
   initialize_cheese();  
 
   if (user_walls()) {
-    initialize_rand_walls();
     drawtext("Initializing walls...");
-    delay(200);
+    initialize_rand_walls();
     drawtext("Simulating...");
   } else {
     drawtext("Simulating...");
