@@ -21,5 +21,12 @@ typedef struct {
   uint8_t cur_pos;
 } player;
 
+typedef struct {
+  uint8_t capacity;
+  uint8_t size;
+  uint8_t front;
+  uint8_t rear;
+  uint8_t *elements;
+} queue;
 
 #endif
