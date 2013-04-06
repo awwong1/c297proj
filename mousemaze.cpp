@@ -100,8 +100,8 @@ void initialize_cheese() {
   /*
     Place the cheese in the bottom right corner of the map
    */
-  cheese.x_coord = 128 - 10;
-  cheese.y_coord = 128 - 10;
+  cheese.x_coord = 128 - 13;
+  cheese.y_coord = 128 - 13;
 }
 
 void random_cheese() {
