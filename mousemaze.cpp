@@ -240,25 +240,25 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
     
   for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
     if (!topedge) {
-      options[wallchoice] = pointvalue - 9;
+      // options[wallchoice] = pointvalue - 9;
       topedge = 1;
     }
     else if (!botedge) {
       options[wallchoice] = pointvalue + 9;
       botedge = 1;
+      continue;
     }
     else if (!leftedge) {
-      options[wallchoice] = pointvalue - 1;
+      // options[wallchoice] = pointvalue - 1;
       leftedge = 1;
     }
     else if (!rightedge) {
       options[wallchoice] = pointvalue + 1;
       rightedge = 1;
+      continue;
     }
     // dummy variable: 255 indicates non-existence
-    else {
-      options[wallchoice] = 255;
-    }
+    options[wallchoice] = 255;
   }
   return options;
 }
