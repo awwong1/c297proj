@@ -95,6 +95,7 @@ void initialize_mouse() {
   /*
     Place the mouse in the top left corner of the map
    */
+  mouse.prev_pos = 255;
   mouse.cur_pos = 0;
 }
 
@@ -102,6 +103,7 @@ void initialize_cheese() {
   /*
     Place the cheese in the bottom right corner of the map
    */
+  mouse.prev_pos = 255;
   cheese.cur_pos = 70;
 }
 
@@ -231,7 +233,7 @@ void random_cheese() {
    */
   while(1) {
     uint8_t location = random(81);
-    if (location > 71 || (location % 9 == 8)) {
+    if (location > 71 || location % 9 == 8 || location == mouse.cur_pos) {
       continue;
     }
     else {
@@ -257,14 +259,36 @@ void draw_walls() {
 }
 
 void draw_mouse() {
-  uint8_t xval = point_array[mouse.cur_pos].x_coord + 7;
-  uint8_t yval = point_array[mouse.cur_pos].y_coord + 7;
+  /*
+    This function removes an image at mouse.prev_pos
+    and draws an image at mouse.cur_pos
+   */
+  uint8_t xval;
+  uint8_t yval;
+  if (mouse.prev_pos != 255) {
+    xval = point_array[mouse.prev_pos].x_coord + 7;
+    yval = point_array[mouse.prev_pos].y_coord + 7;
+    tft.fillCircle(xval, yval, 4, ST7735_BLACK);
+  }
+  xval = point_array[mouse.cur_pos].x_coord + 7;
+  yval = point_array[mouse.cur_pos].y_coord + 7;
   tft.fillCircle(xval, yval, 4, 0xCCCC);
 }
 
 void draw_cheese() {
-  uint8_t xval = point_array[cheese.cur_pos].x_coord + 7;
-  uint8_t yval = point_array[cheese.cur_pos].y_coord + 7;
+  /*
+    This function removes an image at cheese.prev_pos
+    and draws an image at cheese.cur_pos
+   */  
+  uint8_t xval;
+  uint8_t yval;
+  if (cheese.prev_pos != 255) {
+    xval = point_array[cheese.prev_pos].x_coord + 7;
+    yval = point_array[cheese.prev_pos].y_coord + 7;
+    tft.fillCircle(xval, yval, 4, ST7735_BLACK);
+  }
+  xval = point_array[cheese.cur_pos].x_coord + 7;
+  yval = point_array[cheese.cur_pos].y_coord + 7;
   tft.fillCircle(xval, yval, 4, ST7735_YELLOW);
 }
 
@@ -288,5 +312,6 @@ void loop() {
   // Two different states; One for wall placement, One for mouse cycle
   random_cheese();
   draw_cheese();
+  draw_mouse();
   delay(500);
 }
