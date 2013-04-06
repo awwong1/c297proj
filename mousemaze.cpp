@@ -40,7 +40,7 @@ uint16_t num_walls = 0;
 point * point_array;
 entity mouse;
 entity cheese;
-wall * wall_array;
+wall wall_array[64][2];
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
@@ -153,11 +153,10 @@ void initialize_rand_walls() {
 
   // Maximum number of walls is 8 * 9 * 2 = 144 walls
   // malloc enough for every wall in the map
-  wall_array = (typeof(wall_array)) malloc(sizeof(*wall_array) * 144);
   uint8_t pt1, pt2;
   randomSeed(getSeed());
   uint8_t no_walls = random(144);
-  
+
   if (DEBUG) {
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
@@ -167,41 +166,66 @@ void initialize_rand_walls() {
   // Usually can be +-1 or +-9, with the exception of the edges
   for (uint8_t i = 0; i < no_walls; i++){
     uint8_t * options;
-    options = (typeof(options)) malloc(sizeof(* options) * 4);
+    options = (typeof(options)) malloc(sizeof(* options) * 2);
     // always check the return code of malloc
     if ( options == 0 ) {
       Serial.println("No memory!");
       while ( 1 ) {}
     }
-    
-    pt1 = random(81);
+    // Choose a random cell from 0 to 63 inclusive, 
+    // Of that cell, pick a random wall from 0 to 1 inclusive
+    pt1 = random(63);
     options = get_options(pt1, options);
+    uint8_t wallchoice;
     while(1) {
-      uint8_t choice = random(4);
-      pt2 = options[choice];
+      wallchoice = random(4);
+      pt2 = options[wallchoice];
+      if (DEBUG) {
+	Serial.print("Wallchoice: ");
+	Serial.print(wallchoice);
+	Serial.print(" : ");
+	Serial.println(options[wallchoice]);
+      }
       if (pt2 != 255) {
 	break;
       }
     }
     
-    wall_array[i].pt1 = point_array[pt1];
-    wall_array[i].pt2 = point_array[pt2];
+    wall_array[pt1][wallchoice].pt1 = point_array[pt1];
+    wall_array[pt1][wallchoice].pt2 = point_array[pt2];
     
     free(options);
 
     if (DEBUG) {
+      Serial.print("Wall Number: ");
       Serial.print(i);
+      Serial.print(" Wall Points: (");
+      Serial.print(wall_array[pt1][wallchoice].pt1.x_coord);
+      Serial.print(", ");
+      Serial.print(wall_array[pt1][wallchoice].pt1.y_coord);
+      Serial.print("), (");
+      Serial.print(wall_array[pt1][wallchoice].pt2.x_coord);
+      Serial.print(", ");
+      Serial.print(wall_array[pt1][wallchoice].pt2.y_coord);
+      Serial.println(")");
     }
     num_walls++;
   }
 }
 
 uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
+  /*
+    Get options takes a point 'pointvalue' and returns all of the
+    viable neighbors of pointvalue. With our current design, this will
+    return a point choice to the right of the point (+1), or below the
+    point(+9)
+   */
   uint8_t leftedge = 0;
   uint8_t rightedge = 0;
   uint8_t topedge = 0;
   uint8_t botedge = 0;
 
+  // Set the fake boolean to true if edge case is true
   if (pointvalue < 9) { topedge = 1; }
   if (pointvalue > 71) { botedge = 1; }
   if ((pointvalue % 9) == 0) { leftedge = 1; }
@@ -209,25 +233,25 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
     
   for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
     if (!topedge) {
-      options[wallchoice] = pointvalue - 9;
+      // options[wallchoice] = pointvalue - 9;
       topedge = 1;
     }
     else if (!botedge) {
       options[wallchoice] = pointvalue + 9;
       botedge = 1;
+      continue;
     }
     else if (!leftedge) {
-      options[wallchoice] = pointvalue - 1;
+      // options[wallchoice] = pointvalue - 1;
       leftedge = 1;
     }
     else if (!rightedge) {
       options[wallchoice] = pointvalue + 1;
       rightedge = 1;
+      continue;
     }
     // dummy variable: 255 indicates non-existence
-    else {
-      options[wallchoice] = 255;
-    }
+    options[wallchoice] = 255;
   }
   return options;
 }
@@ -359,10 +383,12 @@ void draw_corners() {
 }
 
 void draw_walls() {
-  for (int line = 0; line < num_walls; line++) {
-    point apoint = wall_array[line].pt1;
-    point bpoint = wall_array[line].pt2;
-    tft.drawLine(apoint.x_coord, apoint.y_coord, bpoint.x_coord, bpoint.y_coord, 0x0990);
+  for (int cell = 0; cell < 64; cell++) {
+    for (int wall = 0; wall < 2; wall++) {     
+      point apoint = wall_array[cell][wall].pt1;
+      point bpoint = wall_array[cell][wall].pt2;
+      tft.drawLine(apoint.x_coord, apoint.y_coord, bpoint.x_coord, bpoint.y_coord, 0x0990);
+    }
   }
 }
 
@@ -406,10 +432,16 @@ void setup() {
   point_array = initialize_map();
     
   initialize_mouse();
-  initialize_cheese();
+  initialize_cheese();  
 
-  initialize_rand_walls();
-
+  if (user_walls()) {
+    initialize_rand_walls();
+    drawtext("Initializing walls...");
+    delay(200);
+    drawtext("Simulating...");
+  } else {
+    drawtext("Simulating...");
+  }
   draw_walls();
   draw_corners();
   draw_mouse();
