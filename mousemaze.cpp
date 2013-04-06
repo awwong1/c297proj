@@ -38,8 +38,8 @@ uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 uint16_t num_walls = 0;
 point * point_array;
-point mouse;
-point cheese;
+entity mouse;
+entity cheese;
 wall * wall_array;
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
@@ -95,16 +95,14 @@ void initialize_mouse() {
   /*
     Place the mouse in the top left corner of the map
    */
-  mouse.x_coord = 10;
-  mouse.y_coord = 10;
+  mouse.cur_pos = 0;
 }
 
 void initialize_cheese() {
   /*
     Place the cheese in the bottom right corner of the map
    */
-  cheese.x_coord = 128 - 13;
-  cheese.y_coord = 128 - 13;
+  cheese.cur_pos = 70;
 }
 
 point * initialize_map() {
@@ -130,7 +128,6 @@ point * initialize_map() {
       int x_coord = (x * 15) + 3;
       point_array[count].x_coord = x_coord;
       point_array[count].y_coord = y_coord;
-      point_array[count].num = count;
       count++;
     }
   }
@@ -186,10 +183,6 @@ void initialize_rand_walls() {
 
     if (DEBUG == 1) {
       Serial.print(i);
-      Serial.print(": ");
-      Serial.print(wall_array[i].pt1.num);
-      Serial.print(", ");
-      Serial.println(wall_array[i].pt2.num);
     }
     num_walls++;
   }
@@ -242,8 +235,8 @@ void random_cheese() {
       continue;
     }
     else {
-      cheese.x_coord = point_array[location].x_coord + 7;
-      cheese.y_coord = point_array[location].y_coord + 7;
+      cheese.prev_pos = cheese.cur_pos;
+      cheese.cur_pos = location;
       break;
     }
   }  
@@ -264,11 +257,15 @@ void draw_walls() {
 }
 
 void draw_mouse() {
-  tft.fillCircle(mouse.x_coord, mouse.y_coord, 4, 0xCCCC);
+  uint8_t xval = point_array[mouse.cur_pos].x_coord + 7;
+  uint8_t yval = point_array[mouse.cur_pos].y_coord + 7;
+  tft.fillCircle(xval, yval, 4, 0xCCCC);
 }
 
 void draw_cheese() {
-  tft.fillCircle(cheese.x_coord, cheese.y_coord, 4, ST7735_YELLOW);
+  uint8_t xval = point_array[cheese.cur_pos].x_coord + 7;
+  uint8_t yval = point_array[cheese.cur_pos].y_coord + 7;
+  tft.fillCircle(xval, yval, 4, ST7735_YELLOW);
 }
 
 void setup() {
