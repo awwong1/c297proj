@@ -157,9 +157,8 @@ void initialize_rand_walls() {
       Serial.print(wall_array[i].pt1.num);
       Serial.print(", ");
       Serial.println(wall_array[i].pt2.num);
-      }
+    }
   }
-
 }
 
 void setup() {
