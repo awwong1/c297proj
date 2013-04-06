@@ -55,6 +55,12 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
 void random_cheese();
 void draw_corners();
 void draw_walls();
+void drawtext(char *text);
+
+uint8_t user_walls();
+uint8_t yes_or_no();
+
+
 void setup();
 void loop();
 uint8_t * bfs(entity mouse, entity cheese);
@@ -291,10 +297,12 @@ uint8_t* bfs(entity mouse, entity cheese) {
       return visited; 
     }
     // check neighbours
-    adjacent = adj_to(cur, adj);
+    //    adjacent = adj_to(cur, adj);
+    /*
     for (int i = 0; i < ; i++) {
       
     }
+    */
   }
   free(q);
   return visited;
@@ -305,7 +313,7 @@ uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
     returns an array of vertices that are adjacent to cur
    */
 
-  uint8_t * adj;
+  //  uint8_t * adj;
   adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
   // check left vertex (cur's left wall)
 
@@ -419,6 +427,48 @@ void draw_cheese() {
   xval = point_array[cheese.cur_pos].x_coord + 7;
   yval = point_array[cheese.cur_pos].y_coord + 7;
   tft.fillCircle(xval, yval, 4, ST7735_YELLOW);
+}
+
+void drawtext(char *text) {
+  tft.fillRect(0, 128, 128, 32, ST7735_BLACK);
+  tft.setCursor(0, 128);
+  tft.setTextColor(ST7735_WHITE);
+  tft.setTextWrap(true);
+  tft.print(text);
+}
+
+uint8_t user_walls(){
+  drawtext("Init random walls?");
+  return yes_or_no();
+}
+
+uint8_t yes_or_no(){
+  tft.setCursor(78, 138);
+  tft.print("N");
+  tft.setCursor(26, 138);
+  tft.print("Y");
+  uint8_t selection = 1;
+  while(1) {
+    // Move cursor left
+    if(analogRead(joyhor)>(joycenx+joyerr)) {
+      selection = 1;
+    }
+    // Move cursor right
+    if(analogRead(joyhor)<(joycenx-joyerr)) {
+      selection = 0;
+    }
+    if (!selection) {
+      tft.drawRect(76, 136, 9, 11, ST7735_MAGENTA);
+      tft.drawRect(24, 136, 9, 11, ST7735_BLACK);
+    }
+    if (selection) {
+      tft.drawRect(76, 136, 9, 11, ST7735_BLACK);
+      tft.drawRect(24, 136, 9, 11, ST7735_MAGENTA);
+    }
+    if(digitalRead(joypush) == 0) {
+      return selection;
+    }
+  }
 }
 
 void setup() {
