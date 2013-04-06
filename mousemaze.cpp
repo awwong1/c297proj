@@ -185,7 +185,7 @@ void initialize_rand_walls() {
     options = get_options(pt1, options);
     uint8_t wallchoice;
     while(1) {
-      wallchoice = random(4);
+      wallchoice = random(2);
       pt2 = options[wallchoice];
       if (DEBUG) {
 	Serial.print("Wallchoice: ");
@@ -238,13 +238,18 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
   if ((pointvalue % 9) == 0) { leftedge = 1; }
   if ((pointvalue % 9) == 8) { rightedge = 1;}
     
-  for (uint8_t wallchoice = 0; wallchoice < 4; wallchoice++) {  
-    if (!rightedge && !botedge){
+  for (uint8_t wallchoice = 0; wallchoice < 2; wallchoice++) {  
+    if (rightedge) {
+      options[wallchoice] = 255;
+    }
+    if (!rightedge) {
       options[wallchoice] = pointvalue + 1;
+      rightedge = 1;
       continue;
     }
-    else if (!botedge && !rightedge) {
+    else if (!botedge) {
       options[wallchoice] = pointvalue + 9;
+      botedge = 1;
       continue;
     }
     // dummy variable: 255 indicates non-existence
