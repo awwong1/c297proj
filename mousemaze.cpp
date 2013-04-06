@@ -63,6 +63,12 @@ uint8_t yes_or_no();
 
 void setup();
 void loop();
+uint8_t * bfs(entity mouse, entity cheese);
+uint8_t * adj_to(uint8_t cur, uint8_t * adj);
+queue* create_queue(uint8_t maxElements);
+void dequeue(queue *q);
+void enqueue(queue *q, uint8_t element);
+
 
 uint8_t getSeed(){
   uint8_t seed = 0;
@@ -226,6 +232,7 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
       options[wallchoice] = pointvalue + 1;
       rightedge = 1;
     }
+    // dummy variable: 255 indicates non-existence
     else {
       options[wallchoice] = 255;
     }
@@ -250,6 +257,94 @@ void random_cheese() {
       break;
     }
   }  
+}
+
+uint8_t* bfs(entity mouse, entity cheese) {
+  /*
+    performs a breadth first search from mouse to cheese
+    returns array with path
+   */
+  queue *q = create_queue(64);
+  uint8_t visited[64] = {0};
+  uint8_t cur;
+  // mouse has visited vertex it is now at;
+  //  visited[mouse.cur_pos] = 1;
+  enqueue(q, mouse.cur_pos);
+
+  while(q->size) {
+    cur = q->elements[q->front];
+    if (cur == cheese.cur_pos) {
+      return visited; 
+    }
+  }
+  free(q);
+  return visited;
+}
+
+uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
+  /*
+    returns vertices that are adjacent to cur
+   */
+  uint8_t * options;
+  options = (typeof(options)) malloc(sizeof(* options) * 4);
+  options = get_options(cur, options);
+  for (int i = 0; i < 4; i++) {
+      
+  }
+  free(options);
+}
+
+queue* create_queue(uint8_t maxElements) {
+  /*
+    Creates queue for use in bfs
+   */
+  queue *q;
+  q = (queue*) malloc(sizeof(queue));
+  
+  q->elements = (uint8_t *) malloc(sizeof(int)*maxElements);
+  q->size = 0;
+  q->capacity = maxElements;
+  q->front = 0;
+  q->rear = -1;
+
+  return q;
+}
+
+void dequeue(queue *q) {
+  /*
+    dequeues an item.  To be used in bfs.
+   */
+  if(q->size == 0) {
+    return;
+  }
+  else {
+    q->size--;
+    q->front++;
+
+    // allow for circular filling of queue
+    if(q->front == q->capacity) {
+      q->front = 0;
+    }
+  }
+  return;  
+}
+
+void enqueue(queue *q, uint8_t element) {
+  // if queue is full, return
+  if (q->size == q->capacity) {
+    Serial.println("q at capacity");
+  }
+  else {
+    q->size++;
+    q->rear++;
+    // allow for circular filling of queue
+    if(q->rear == q->capacity) {
+      q->rear = 0;
+    }
+    // insert element at rear
+    q->elements[q->rear] = element;
+  }
+  return;
 }
 
 void draw_corners() {
