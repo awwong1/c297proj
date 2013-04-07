@@ -165,6 +165,10 @@ void initialize_rand_walls() {
   randomSeed(getSeed());
   uint8_t no_walls = random(144);
   if (DEBUG) {
+    Serial.print("Stack size start initialize_rand_walls(): ");
+    Serial.println(STACK_SIZE);
+    Serial.print("Available memory: ");
+    Serial.println(AVAIL_MEM);
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
   }
@@ -215,6 +219,8 @@ void initialize_rand_walls() {
       Serial.print(", ");
       Serial.print(wall_array[pt1][wallchoice].pt2.y_coord);
       Serial.println(")");
+      Serial.print("Avail mem: ");
+      Serial.println(AVAIL_MEM);
     }
     num_walls++;
   }
@@ -276,11 +282,11 @@ uint8_t* bfs(queue * q, entity mouse, entity cheese) {
   /*
     performs a breadth first search from mouse to cheese
     returns array with path
-   */
+  */
   uint8_t * adj;
   uint8_t visited[81] = {0};
   adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
-  queue *q = create_queue(64);
+  q = create_queue(64);
   uint8_t count = 0;
   uint8_t cur;
   // mouse has visited vertex it is now at;
@@ -377,7 +383,7 @@ void dequeue(queue *q) {
     q->size--;
     q->front++;
 
-    // allow for circular filling of queue
+   // allow for circular filling of queue
     if(q->front == q->capacity) {
       q->front = 0;
     }
