@@ -562,6 +562,17 @@ void clear_corner_select(uint8_t corner, point *point_array) {
   return;
 }
 
+void togglewall(uint8_t corner1, uint8_t corner2, point *point_array) {
+  /*
+    This function takes two points, corner1 and corner2 and checks if
+    a wall exists between those points. If the wall exists, this
+    function will remove the wall in question, else it will create a
+    wall between those two points.
+
+    UNDER CONSTRUCTION
+   */
+}
+
 uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
   /*
     Checks to see if the supplied direction is valid for the given
@@ -719,7 +730,7 @@ void loop() {
 	    // wall and break
 	    if (wallpos == cornerpos) {
 	      drawtext("Same point, invalid");
-	      delay(500);
+	      delay(1000);
 	      clear_corner_select(wallpos, point_array);
 	      drawtext("Editor mode...");
 	      break;
