@@ -546,11 +546,11 @@ uint8_t read_joy_input() {
   return selection;
 }
 
-void draw_corner_select(uint8_t corner, point *point_array) {
+void draw_corner_select(uint8_t corner, point *point_array, uint16_t color) {
   if (corner >= 81) {
     return;
   }
-  tft.drawCircle(point_array[corner].x_coord, point_array[corner].y_coord, 2, ST7735_RED);
+  tft.drawCircle(point_array[corner].x_coord, point_array[corner].y_coord, 2, color);
   return;
 }
 
@@ -660,12 +660,16 @@ void loop() {
   if (pause){
     if(trigger) {
       drawtext("Editor mode...");
-      draw_corner_select(cornerpos, point_array);
+      draw_corner_select(cornerpos, point_array, ST7735_RED);
       trigger = 0;
     }
     uint8_t edtrigger = 0;
     uint8_t joytrigger = 0;
     uint8_t direction = read_joy_input();
+    uint8_t wallpos = 0;
+    uint8_t walldirection = 0;
+    uint8_t wedtrigger = 0;
+    uint8_t wjoytrigger = 0;
     while(1) {
       if (edtrigger == 0 && joytrigger == 0) {
 	direction = read_joy_input();
@@ -676,7 +680,7 @@ void loop() {
       if (joytrigger == 1 && edtrigger == 0){
 	clear_corner_select(cornerpos, point_array);
 	cornerpos = move_to_corner(cornerpos, direction);
-	draw_corner_select(cornerpos, point_array);
+	draw_corner_select(cornerpos, point_array, ST7735_RED);
 	edtrigger = 1;
       }
       if (edtrigger == 1 && joytrigger == 1) {
@@ -684,6 +688,62 @@ void loop() {
 	  edtrigger = 0;
 	  joytrigger = 0;
 	}
+      }
+      if (digitalRead(joypush) == 0) {
+	// Corner selected
+	wallpos = cornerpos;
+	drawtext("Select next corner");
+	delay(500);
+	while(1) {
+	  draw_corner_select(cornerpos, point_array, ST7735_RED);
+	  if (wedtrigger == 0 && wjoytrigger == 0) {
+	    walldirection = read_joy_input();
+	  }
+	  if (walldirection != 255) {
+	    wjoytrigger = 1;
+	  }
+	  if (wjoytrigger == 1 && wedtrigger == 0){
+	    clear_corner_select(wallpos, point_array);
+	    wallpos = move_to_corner(cornerpos, walldirection);
+	    draw_corner_select(wallpos, point_array, ST7735_GREEN);
+	    wedtrigger = 1;
+	  }
+	  if (wedtrigger == 1 && wjoytrigger == 1) {
+	    if (read_joy_input() == 255) {
+	      wedtrigger = 0;
+	      wjoytrigger = 0;
+	    }
+	  }
+	  if (digitalRead(joypush) == 0) {
+	    // Second point has been selected, add the wall, draw the
+	    // wall and break
+	    if (wallpos == cornerpos) {
+	      drawtext("Same point, invalid");
+	      delay(500);
+	      clear_corner_select(wallpos, point_array);
+	      drawtext("Editor mode...");
+	      break;
+	    }
+	    else {
+	      /*
+		UNDER CONSTRUCTION
+	       */
+	      
+	      // togglewall(cornerpos, wallpos, point_array);
+	      drawtext("Wall has been toggled\n (Under construction)");
+	      delay(1000);
+	      clear_corner_select(wallpos, point_array);
+	      drawtext("Editor mode...");
+	      break;
+	    }
+	  }
+	  if (digitalRead(buttonpause) == 0) {
+	    clear_corner_select(wallpos, point_array);
+	    drawtext("Editor mode...");
+	    break;
+	  }
+	}
+	draw_corner_select(cornerpos, point_array, ST7735_RED); 
       }
       if (digitalRead(buttonpause) == 0) {
 	clear_corner_select(cornerpos, point_array);
