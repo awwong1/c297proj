@@ -41,7 +41,9 @@ uint8_t pause;
 point * point_array;
 entity mouse;
 entity cheese;
-wall wall_array[64][2];
+wall wall_array[65][2];
+
+point nullpoint;
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
@@ -52,7 +54,7 @@ void initialize_joy();
 void initialize_cheese();
 point * initialize_map();
 void initialize_rand_walls();
-uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
+void get_options(uint8_t pointvalue, uint8_t * options);
 void random_cheese();
 void draw_corners();
 void draw_walls();
@@ -90,7 +92,7 @@ void initialize() {
     Serial.println("Failed!");
     return;
   }
-  Serial.print("OK!");
+  Serial.println("OK!");
 
   tft.fillScreen(tft.Color565(0x00, 0x00, 0x00));
 }
@@ -153,6 +155,17 @@ point * initialize_map() {
   return point_array;
 }
 
+void initialize_base_walls() {
+  nullpoint.x_coord = 127;
+  nullpoint.y_coord = 127;
+
+  for (int cell = 0; cell < 64; cell++) {
+    for (int wall = 0; wall < 2; wall++) {     
+      wall_array[cell][wall].pt1 = nullpoint;
+      wall_array[cell][wall].pt2 = nullpoint;
+    }
+  }
+}
 
 void initialize_rand_walls() {
   /*
@@ -162,8 +175,7 @@ void initialize_rand_walls() {
   // Maximum number of walls is 8 * 9 * 2 = 144 walls
   // malloc enough for every wall in the map
   uint8_t pt1, pt2;
-  randomSeed(getSeed());
-  uint8_t no_walls = 50;
+  uint8_t no_walls = random(144);
   if (DEBUG) {
     Serial.print("Stack size start initialize_rand_walls(): ");
     Serial.println(STACK_SIZE);
@@ -175,29 +187,26 @@ void initialize_rand_walls() {
   
   // For every point 1, point 2 must be the x/y adjacent point
   // Usually can be +-1 or +-9, with the exception of the edges
-  for (uint8_t i = 0; i < no_walls; i++){
-    uint8_t * options;
-    options = (typeof(options)) malloc(sizeof(* options) * 2);
-    // always check the return code of malloc
-    if ( options == 0 ) {
-      Serial.println("No memory!");
-      while ( 1 ) {}
-    }
+  
+  uint8_t options[2];
+  // always check the return code of malloc
+  if ( options == 0 ) {
+    Serial.println("No memory!");
+    while ( 1 ) {}
+  }
+  
+  for (uint8_t iterawall = 0; iterawall < no_walls; iterawall++){
     // Choose a random cell from 0 to 63 inclusive, 
     // Of that cell, pick a random wall from 0 to 1 inclusive
     
-    // Make sure that pt1 is not on the right edge:
-    pt1 = random(71);
+    // Make sure that pt1 is not on the right or bottom:
+    pt1 = random(81);
     while(1) {
-      if (pt1 % 9 == 8) {
-	pt1 = random(63);
-      }
-      else {
-	break;
-      }
+      if (pt1 % 9 == 8) { pt1 = random(81); }
+      else if (pt1 > 71) { pt1 = random(81); }
+      else { break; }
     }
-    
-    options = get_options(pt1, options);
+    get_options(pt1, options);
     uint8_t wallchoice;
     
     while(1) {
@@ -216,12 +225,11 @@ void initialize_rand_walls() {
     
     wall_array[pt1][wallchoice].pt1 = point_array[pt1];
     wall_array[pt1][wallchoice].pt2 = point_array[pt2];
+    num_walls++;	
     
-    free(options);
-
     if (DEBUG) {
       Serial.print("Wall Number: ");
-      Serial.print(i);
+      Serial.print(iterawall);
       Serial.print(" Wall Points: (");
       Serial.print(wall_array[pt1][wallchoice].pt1.x_coord);
       Serial.print(", ");
@@ -234,42 +242,45 @@ void initialize_rand_walls() {
       Serial.print("Avail mem: ");
       Serial.println(AVAIL_MEM);
     }
-    num_walls++;
   }
+  Serial.println("Done wall init.");
+  return;
 }
 
-uint8_t * get_options(uint8_t pointvalue, uint8_t * options){
+void get_options(uint8_t pointvalue, uint8_t* options){
   /*
     Get options takes a point 'pointvalue' and returns all of the
     viable neighbors of pointvalue. With our current design, this will
     return a point choice to the right of the point (+1), or below the
     point(+9)
    */
-  uint8_t leftedge = 0;
   uint8_t rightedge = 0;
-  uint8_t topedge = 0;
   uint8_t botedge = 0;
-
-  // Set the fake boolean to true if edge case is true
-  if (pointvalue < 9) { topedge = 1; }
-  if (pointvalue > 71) { botedge = 1; }
-  if ((pointvalue % 9) == 0) { leftedge = 1; }
-  if ((pointvalue % 9) == 8) { rightedge = 1;}
+  
+  if (pointvalue % 9 == 8) {
+    rightedge = 1;
+  }
+  if (pointvalue > 71) {
+    botedge = 1;
+  }
   
   for (uint8_t wallchoice = 0; wallchoice < 2; wallchoice++) {
-    if (!botedge) {
-      options[wallchoice] = pointvalue + 9;
-      botedge = 1;
-      continue;
-    }
-    else if (!rightedge) {
+    if (!rightedge) {
+      // Not a right edge, therefore can add right neighbor
       options[wallchoice] = pointvalue + 1;
       rightedge = 1;
       continue;
     }
-    options[wallchoice] = 255;
+    if (!botedge) {
+      // Not a bottom edge, therefore can add bottom neighbor
+      options[wallchoice] = pointvalue + 9;
+      botedge = 1;
+      continue;
+    }
+    // No valid edge, put in the dummy point
+    options[wallchoice] = 64;
   }
-  return options;
+  return;
 }
 
 void random_cheese() {
@@ -433,6 +444,7 @@ void draw_walls() {
     for (int wall = 0; wall < 2; wall++) {     
       point apoint = wall_array[cell][wall].pt1;
       point bpoint = wall_array[cell][wall].pt2;
+      
       tft.drawLine(apoint.x_coord, apoint.y_coord, bpoint.x_coord, bpoint.y_coord, 0x0990);
     }
   }
@@ -473,11 +485,17 @@ void draw_cheese() {
 }
 
 void drawtext(char *text) {
+  Serial.println("Filling screen with black... ");
   tft.fillRect(0, 128, 128, 32, ST7735_BLACK);
+  Serial.println("Setting cursor to 0, 128");
   tft.setCursor(0, 128);
+  Serial.println("Setting text to equal white");
   tft.setTextColor(ST7735_WHITE);
+  Serial.println("Setting textwrap equal true");
   tft.setTextWrap(true);
+  Serial.println("Printing text");
   tft.print(text);
+  Serial.println("Done printing text");
 }
 
 uint8_t user_walls(){
@@ -521,10 +539,12 @@ void setup() {
     
   initialize_mouse();
   initialize_cheese();  
-
+  initialize_base_walls();
+  
   if (user_walls()) {
     drawtext("Initializing walls...");
     initialize_rand_walls();
+    Serial.println("Moving to drawtext('Simulating...');");
     drawtext("Simulating...");
   } else {
     drawtext("Simulating...");
@@ -541,6 +561,9 @@ void loop() {
   // pause = 0; Simulate mouse finding cheese
   // pause = 1; Editor mode
   uint8_t trigger = 0;
+  if (DEBUG) {
+    Serial.println("Looping...");
+  }
   while (digitalRead(buttonpause) == 0) {
     if (!trigger){
       if (pause) {
