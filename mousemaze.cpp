@@ -54,7 +54,7 @@ void initialize_joy();
 void initialize_cheese();
 point * initialize_map();
 void initialize_rand_walls();
-void get_options(uint8_t pointvalue, uint8_t * options);
+void get_options(uint8_t pointvalue, uint8_t options);
 void random_cheese();
 void draw_corners();
 void draw_walls();
@@ -206,7 +206,7 @@ void initialize_rand_walls() {
       else if (pt1 > 71) { pt1 = random(81); }
       else { break; }
     }
-    get_options(pt1, options);
+    get_options(pt1, *options);
     uint8_t wallchoice;
     
     while(1) {
@@ -247,7 +247,7 @@ void initialize_rand_walls() {
   return;
 }
 
-void get_options(uint8_t pointvalue, uint8_t* options){
+void get_options(uint8_t pointvalue, uint8_t options){
   /*
     Get options takes a point 'pointvalue' and returns all of the
     viable neighbors of pointvalue. With our current design, this will
@@ -267,18 +267,18 @@ void get_options(uint8_t pointvalue, uint8_t* options){
   for (uint8_t wallchoice = 0; wallchoice < 2; wallchoice++) {
     if (!rightedge) {
       // Not a right edge, therefore can add right neighbor
-      options[wallchoice] = pointvalue + 1;
+      *options[wallchoice] = pointvalue + 1;
       rightedge = 1;
       continue;
     }
     if (!botedge) {
       // Not a bottom edge, therefore can add bottom neighbor
-      options[wallchoice] = pointvalue + 9;
+      *options[wallchoice] = pointvalue + 9;
       botedge = 1;
       continue;
     }
     // No valid edge, put in the dummy point
-    options[wallchoice] = 64;
+    *options[wallchoice] = 64;
   }
   return;
 }
