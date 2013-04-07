@@ -62,6 +62,7 @@ void drawtext(char *text);
 
 uint8_t user_walls();
 uint8_t yes_or_no();
+uint8_t read_joy_input();
 
 void setup();
 void loop();
@@ -520,6 +521,90 @@ uint8_t yes_or_no(){
   }
 }
 
+uint8_t read_joy_input() {
+  /*
+    This function reads returns the left, right, up, down value of the
+    joypad, where 0: up, 1: left, 2: down, 3: right
+    Else, if no input, selection == 255
+   */
+  uint8_t selection = 255;
+  // Move cursor left
+  if(analogRead(joyhor)>(joycenx+joyerr)) {
+    selection = 1;
+  }
+  // Move cursor right
+  if(analogRead(joyhor)<(joycenx-joyerr)) {
+    selection = 3;
+  }
+  // Move cursor up
+  if(analogRead(joyver)>(joyceny+joyerr)) {
+    selection = 0;
+  }
+  if(analogRead(joyver)<(joyceny-joyerr)) {
+    selection = 2;
+  }
+  return selection;
+}
+
+void draw_corner_select(uint8_t corner, point *point_array) {
+  if (corner >= 81) {
+    return;
+  }
+  tft.drawCircle(point_array[corner].x_coord, point_array[corner].y_coord, 2, ST7735_RED);
+  return;
+}
+
+void clear_corner_select(uint8_t corner, point *point_array) {
+  if (corner >= 81) {
+    return;
+  }
+  tft.drawCircle(point_array[corner].x_coord, point_array[corner].y_coord, 2, ST7735_BLACK);
+  return;
+}
+
+uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
+  /*
+    Checks to see if the supplied direction is valid for the given
+    corner, then returns the resulting corner, if the direction is
+    invalid, the corner does not move
+   */
+  if (direction > 3) {
+    return corner;
+  }
+  if (direction == 0) {
+    if (corner > 8) {
+      return (corner - 9);
+    }
+    else {
+      return corner;
+    }
+  }
+  if (direction == 1) {
+    if (corner % 9 != 0) {
+      return (corner - 1);
+    }
+    else {
+      return corner;
+    }
+  }
+  if (direction == 2) {
+    if (corner < 72) {
+      return (corner + 9);
+    }
+    else {
+      return corner;
+    }
+  }
+  if (direction == 3) {
+    if (corner % 9 != 8) {
+      return (corner + 1);
+    }
+    else {
+      return corner;
+    }
+  }
+}
+
 void setup() {
   initialize();
   initialize_joy();
@@ -556,16 +641,17 @@ void loop() {
   // pause = 0; Simulate mouse finding cheese
   // pause = 1; Editor mode
   uint8_t trigger = 0;
-  if (DEBUG) {
-    Serial.println("Looping...");
-  }
+  uint8_t cornerpos = 255;
+
   while (digitalRead(buttonpause) == 0) {
     if (!trigger){
-      if (pause) {
-	pause = 0;
+      if (pause) { 
+	pause = 0; 
+	cornerpos = 255;
       }
-      else {
-	pause = 1;
+      else { 
+	pause = 1; 
+	cornerpos = 0;
       }
     }
     trigger = 1;
@@ -574,7 +660,35 @@ void loop() {
   if (pause){
     if(trigger) {
       drawtext("Editor mode...");
+      draw_corner_select(cornerpos, point_array);
       trigger = 0;
+    }
+    uint8_t edtrigger = 0;
+    uint8_t joytrigger = 0;
+    uint8_t direction = read_joy_input();
+    while(1) {
+      if (edtrigger == 0 && joytrigger == 0) {
+	direction = read_joy_input();
+      }
+      if (direction != 255) {
+	joytrigger = 1;
+      }
+      if (joytrigger == 1 && edtrigger == 0){
+	clear_corner_select(cornerpos, point_array);
+	cornerpos = move_to_corner(cornerpos, direction);
+	draw_corner_select(cornerpos, point_array);
+	edtrigger = 1;
+      }
+      if (edtrigger == 1 && joytrigger == 1) {
+	if (read_joy_input() == 255) {
+	  edtrigger = 0;
+	  joytrigger = 0;
+	}
+      }
+      if (digitalRead(buttonpause) == 0) {
+	clear_corner_select(cornerpos, point_array);
+	break;
+      }
     }
   }
   else if (!pause) {
@@ -585,7 +699,8 @@ void loop() {
     random_cheese();
     draw_cheese(point_array);
     draw_mouse(point_array);
+    delay(100);
   }
+  draw_corners(point_array);
   trigger = 0;
-  delay(100);
 }
