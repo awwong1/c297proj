@@ -44,8 +44,10 @@ entity cheese;
 wall wall_array[81][2];
 point point_array[81];
 point nullpoint;
-
 uint8_t * path;
+uint8_t path_len = 0; 
+uint8_t trigger;
+
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
@@ -620,9 +622,12 @@ void loop() {
   // Two different states; One for wall placement, One for mouse cycle
   // pause = 0; Simulate mouse finding cheese
   // pause = 1; Editor mode
-  uint8_t trigger = 0;
+  trigger = 0;
+  if (path_len == 0) {
+    trigger = 1;
+  }
   uint8_t cornerpos = 255;
-
+  
   while (digitalRead(buttonpause) == 0) {
     if (!trigger){
       if (pause) { 
@@ -733,45 +738,23 @@ void loop() {
   }
   else if (!pause) {
     if(trigger) {
-      drawtext("Simulating...");
-      trigger = 0;
-
-    }
-    random_cheese();
-    // Serial.print("Cheese moved to: ");
-    // Serial.println(cheese.cur_pos);
-    draw_cheese(point_array);
-    // Serial.print("Cheese drawn at: ");
-    // Serial.println(cheese.cur_pos);
-    draw_mouse(point_array);
-    delay(100);
-  }
-  draw_corners(point_array);
-  
-  Serial.println("Path function begins.");
-  // Serial.println("Path is malloc'd");
-  uint8_t path_len;
-  // find path
-  path_len = bfs(point_array, path, mouse, cheese);
-  
-  Serial.println("Path function ends.");
-  
-  if (!path) {
-    Serial.println("No path, cheese reset");
-    // free(path);
-  }
-  else {
-    for (int i = path_len; i >= 0; i--) {
-      move_mouse_to(path[i]);
-      draw_mouse(point_array);
-      delay(100);
-      if (digitalRead(buttonpause) == 0) {
-	pause = 1;
-	break;
+      drawtext("Simulating...");  
+      Serial.println("Path function begins.");
+      random_cheese();
+      path_len = bfs(point_array, path, mouse, cheese);
+      Serial.println("Path function ends.");
+      if (!path_len) {
+	Serial.println("No path, cheese reset");
+      } 
+    } else {
+      if (path_len != 0) {
+	move_mouse_to(path[path_len-1]);
+	draw_cheese(point_array);
+	draw_mouse(point_array);
+	draw_corners(point_array);
+	path_len--;
+	delay(500);
       }
     }
-    // free(path);
-    drawtext("Cheese found. Yum!");
   }
-  trigger = 0;
 }

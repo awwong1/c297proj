@@ -45,7 +45,7 @@ bool membership_queue (queue * a_list, uint8_t len, uint8_t element);
     Tests if element is in a queue of elements.  Returns true or false.
    */
 
-uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest);
+uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest, uint8_t source);
   /*
     extracts path from visited list.  Returns no. of elements
    */

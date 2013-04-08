@@ -60,7 +60,7 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
     dequeue(q);
     if (cur_pt == cheese.cur_pos) {
       Serial.println("mouse has found the cheese");
-      path_len = extract_path(visited, count, path, cheese.cur_pos);
+      path_len = extract_path(visited, count, path, cheese.cur_pos, mouse.cur_pos);
       free(q);
       free(visited);
       free(adj);
@@ -254,7 +254,7 @@ void enqueue(queue *q, uint8_t element) {
   return;
 }
 
-uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest) {
+uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest, uint8_t source) {
   /*
     extracts path from visited list.  Returns no. of elements
    */
@@ -271,7 +271,7 @@ uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest) 
   }
   path[0] = dest;
   // while not at mouse starting position = 0
-  while (path[count-1] != dest) {
+  while (path[count-1] != source) {
     Serial.print("path[count-1]: ");
     Serial.println(path[count-1]);
     for (int i = 0; i < len; i++) {
