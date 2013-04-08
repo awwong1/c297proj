@@ -303,6 +303,23 @@ void print_all_walls() {
   return;
 }
 
+void move_mouse_to(uint8_t pointlocation) {
+  /*
+    Takes the mouse and moves it to the location at the point location
+    NOTE: This function does not check if pointlocation is valid for the mouse 
+    ie) This function could move the mouse from any spot on
+    the map to any spot on the map
+   */
+  if (pointlocation > 71 || pointlocation % 9 == 8) {
+    // Invalid pointlocation
+  }
+  else {
+    mouse.prev_pos = mouse.cur_pos;
+    mouse.cur_pos = pointlocation;  
+  }
+  return;
+}
+
 void random_cheese() {
   /*
     Place the cheese in a random location on the map
@@ -749,40 +766,22 @@ uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
     corner, then returns the resulting corner, if the direction is
     invalid, the corner does not move
    */
-  if (direction > 3) {
-    return corner;
-  }
+  if (direction > 3) { return corner; }
   if (direction == 0) {
-    if (corner > 8) {
-      return (corner - 9);
-    }
-    else {
-      return corner;
-    }
+    if (corner > 8) { return (corner - 9); }
+    else { return corner; }
   }
   if (direction == 1) {
-    if (corner % 9 != 0) {
-      return (corner - 1);
-    }
-    else {
-      return corner;
-    }
+    if (corner % 9 != 0) { return (corner - 1); }
+    else { return corner; }
   }
   if (direction == 2) {
-    if (corner < 72) {
-      return (corner + 9);
-    }
-    else {
-      return corner;
-    }
+    if (corner < 72) { return (corner + 9); }
+    else { return corner; }
   }
   if (direction == 3) {
-    if (corner % 9 != 8) {
-      return (corner + 1);
-    }
-    else {
-      return corner;
-    }
+    if (corner % 9 != 8) { return (corner + 1); }
+    else { return corner; }
   }
 }
 
