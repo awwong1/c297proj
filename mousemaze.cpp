@@ -67,11 +67,12 @@ uint8_t read_joy_input();
 void setup();
 void loop();
 uint8_t * bfs(entity mouse, entity cheese);
-uint8_t * adj_to(uint8_t cur, uint8_t * adj);
+uint8_t adj_to(uint8_t cur, uint8_t * adj);
+bool is_equal(point pt1, point pt2);
 queue* create_queue(uint8_t maxElements);
 void dequeue(queue *q);
 void enqueue(queue *q, uint8_t element);
-
+bool membership (uint8_t * a_list, uint8_t len, uint8_t element);
 
 uint8_t getSeed(){
   uint8_t seed = 0;
@@ -160,6 +161,21 @@ point * initialize_map(point * pointarray) {
   // This is placed here for visuals. Also, walls draw over corners currently.
   draw_corners(point_array);
   return point_array;
+}
+
+void initialize_base_walls() {
+  /*
+    Initializes walls to dummy variable 127
+   */
+  nullpoint.x_coord = 127;
+  nullpoint.y_coord = 127;
+
+  for (int cell = 0; cell < 64; cell++) {
+    for (int wall = 0; wall < 2; wall++) {     
+      wall_array[cell][wall].pt1 = nullpoint;
+      wall_array[cell][wall].pt2 = nullpoint;
+    }
+  }
 }
 
 void initialize_rand_walls(point *point_array) {
@@ -291,82 +307,143 @@ void random_cheese() {
   }  
 }
 
-uint8_t* bfs(queue * q, entity mouse, entity cheese) {
+uint8_t * bfs(point * point_array, uint8_t * visited, entity mouse, entity cheese) {
   /*
     performs a breadth first search from mouse to cheese
     returns array with path
   */
   uint8_t * adj;
-  uint8_t visited[81] = {0};
   adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
-  q = create_queue(64);
+  queue * q = create_queue(64);
   uint8_t count = 0;
+  uint8_t adj_len;
   uint8_t cur;
   // mouse has visited vertex it is now at;
   //  visited[mouse.cur_pos] = 1;
   enqueue(q, mouse.cur_pos);
+  //  enqueue(visited, mouse.cur_pos);
 
   while(q->size) {
     cur = q->elements[q->front];
+    Serial.print("current node: ");
+    Serial.println(cur);
+    dequeue(q);
     if (cur == cheese.cur_pos) {
+      Serial.println("mouse has found the cheese");
       return visited;
     }
     // check neighbours
-    adj = adj_to(cur, adj);
-    for (int i = 0; i < sizeof(adj)/sizeof(adj[0]); i++) {
+    adj_len = adj_to(cur, adj);
+    for (int i = 0; i < adj_len; i++) {
       // if not in visited, add to queue
-      for (int j = 0; j < sizeof(visited)/sizeof(visited[0]); j++) {
-	if (visited[j] != cur) {
-	  visited[count] = cur;
-	  count++;
-	  enqueue(q, adj[i]);
-	}
+      if (membership(adj, adj_len, adj[i]) &&
+	  membership(visited, count, adj[i]) == false) {
+	visited[count] = cur;
+	count++;
+	enqueue(q, adj[i]);
       }
     }
+    free(adj);
   }
-  // DON"T FORGET TO FREE q MICHELLE LOOK HERE
-  free(adj);
-  return visited;
+  // TODO: free q
+  Serial.print("No way to reach cheese");
+  return (uint8_t*) NULL;
 }
 
-uint8_t * adj_to(uint8_t cur, uint8_t * adj) {
+bool membership (uint8_t * a_list, uint8_t len, uint8_t element) {
+  /*
+    Tests if element is in a list.  Returns true or false.
+   */
+  bool in_list = false;
+  for (int i = 0; i < len; i++) {
+    if (a_list[i] == element) {
+      in_list = true;
+    }
+  }
+  return in_list;
+}
+
+uint8_t adj_to(uint8_t cur, uint8_t * adj) {
   /*
     returns vertices that are adjacent to cur
    */
   uint8_t count = 0;
+  bool top = false;
+  bool left = false;
+  bool right = false;
+  bool bottom = false;
+
+  // check for edge cases
+  if (cur < 9) {
+    top = true;
+  }
+  if (cur > 72) {
+    bottom = true;
+  }
+  if (cur % 9 == 8) {
+    right = true;
+  }
+  if (cur % 9 == 0) {
+    left = true;
+  }
 
   // check left vertex (cur's left wall)
-  if (sizeof(wall_array[cur][1]) == 0) {
+  if (is_equal(wall_array[cur][1].pt1, nullpoint) &&
+      is_equal(wall_array[cur][1].pt2, nullpoint)) {
     adj[count] = cur - 1;
+    if (left) {
+      adj[count] = cur + 8;
+    }
     count++;
   }
   // check top vertex (cur's top wall)
-  if (sizeof(wall_array[cur][0]) == 0) {
+  if (is_equal(wall_array[cur][0].pt1, nullpoint) &&
+      is_equal(wall_array[cur][0].pt2, nullpoint)) {
     adj[count] = cur - 9;
+    if (top) {
+      adj[count] = cur + 72;
+    }
     count++;
   }
   // check bottom vertex (cur + 9)'s top wall
-  if (sizeof(wall_array[cur + 9][0]) == 0) {
+  if (is_equal(wall_array[cur + 9][0].pt1, nullpoint) &&
+      is_equal(wall_array[cur + 9][0].pt2, nullpoint)) {
     adj[count] = cur + 9;
+    if (bottom) {
+      adj[count] = cur - 72;
+    }
     count++;
   }
-
   // check right vertex (cur + 1)'s left wall
-  if (sizeof(wall_array[cur + 9][1]) == 0) {
+  if (is_equal(wall_array[cur + 1][1].pt1, nullpoint) &&
+      is_equal(wall_array[cur + 1][1].pt2, nullpoint)) {
     adj[count] = cur + 1;
+    if (right) {
+      adj[count] = cur - 8;
+    }
     count++;
   }
 
   if (DEBUG) {
-    Serial.print("Printing cells adjacent to ");
-    Serial.println(cur);
-    for (int i = 0; i < sizeof(adj)/sizeof(adj[0]); i++) {
+    Serial.print("adjacent cells: ");
+    for (int i = 0; i < count; i++) {
       Serial.print(adj[i]);
       Serial.print(", ");
     }
     Serial.println("");
   }
-  return adj;
+  return count;
+}
+
+bool is_equal(point pt1, point pt2) {
+  /*
+    Tests if two points are equal.  Returns true/false.
+   */
+  bool equal = false;
+  if (pt1.x_coord == pt2.x_coord && pt1.y_coord == pt2.y_coord) {
+    equal = true;
+  }
+  return equal;
 }
 
 queue* create_queue(uint8_t maxElements) {
@@ -627,7 +704,8 @@ void setup() {
   }
 
   point_array = initialize_map(point_array);
-    
+  
+  initialize_base_walls();
   initialize_mouse();
   initialize_cheese();
   draw_corners(point_array);
@@ -773,5 +851,16 @@ void loop() {
     delay(100);
   }
   draw_corners(point_array);
+  uint8_t * visited;
+  visited = (typeof(visited)) malloc(sizeof(* visited) * 81);
+  visited = bfs(point_array, visited, mouse, cheese);
+
+  if (!visited) {
+    Serial.println("No path, reinitialize walls");
+    initialize_base_walls();
+    initialize_rand_walls(point_array);
+    draw_walls();
+  }
+
   trigger = 0;
 }
