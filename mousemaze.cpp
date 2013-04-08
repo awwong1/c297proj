@@ -45,6 +45,7 @@ wall wall_array[81][2];
 point point_array[81];
 point nullpoint;
 
+uint8_t * path;
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
@@ -589,6 +590,8 @@ uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
 }
 
 void setup() {
+  path = (typeof(path)) malloc(sizeof(path) * 81);
+
   initialize();
   initialize_joy();
   initialize_map(point_array);
@@ -735,20 +738,18 @@ void loop() {
 
     }
     random_cheese();
-    Serial.print("Cheese moved to: ");
-    Serial.println(cheese.cur_pos);
+    // Serial.print("Cheese moved to: ");
+    // Serial.println(cheese.cur_pos);
     draw_cheese(point_array);
-    Serial.print("Cheese drawn at: ");
-    Serial.println(cheese.cur_pos);
+    // Serial.print("Cheese drawn at: ");
+    // Serial.println(cheese.cur_pos);
     draw_mouse(point_array);
     delay(100);
   }
   draw_corners(point_array);
   
   Serial.println("Path function begins.");
-  uint8_t * path;
-  path = (typeof(path)) malloc(sizeof(path) * 81);
-  Serial.println("Path is malloc'd");
+  // Serial.println("Path is malloc'd");
   uint8_t path_len;
   // find path
   path_len = bfs(point_array, path, mouse, cheese);
@@ -757,7 +758,7 @@ void loop() {
   
   if (!path) {
     Serial.println("No path, cheese reset");
-    free(path);
+    // free(path);
   }
   else {
     for (int i = path_len; i >= 0; i--) {
@@ -769,7 +770,7 @@ void loop() {
 	break;
       }
     }
-    free(path);
+    // free(path);
     drawtext("Cheese found. Yum!");
   }
   trigger = 0;

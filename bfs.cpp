@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "map.h"
 #include "bfs.h"
+#include "mem_syms.h"
 
 extern wall wall_array[81][2];
 extern point point_array[81];
@@ -14,8 +15,19 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
     returns array with path
   */
 
+  Serial.println("\nBFS Code begins here");
+
   uint8_t * adj;
   adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
+  
+  if (adj == 0) {
+    Serial.println("adj Outta Memory!");
+    while(1) {}
+  } else {
+    Serial.println("adj ok");
+    Serial.println(AVAIL_MEM);
+  }
+
   queue * q = create_queue(64);
   uint8_t count = 0;
   uint8_t adj_len;
@@ -24,6 +36,13 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
   node * visited;
   uint8_t path_len;
   visited = (typeof(visited)) malloc(sizeof(* visited) * 81);
+
+  if (visited == 0) {
+    Serial.println("Visited Outta Memory!");
+    while(1) {}
+  } else {
+    Serial.println("Visited ok");
+  }
 
 
   Serial.print("mouse is at: ");
@@ -42,6 +61,9 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
     if (cur_pt == cheese.cur_pos) {
       Serial.println("mouse has found the cheese");
       path_len = extract_path(visited, count, path, cheese.cur_pos);
+      free(q);
+      free(visited);
+      free(adj);
       return path_len;
     }
     // check neighbours
@@ -57,9 +79,9 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
 	enqueue(q, adj[i]);
       }
     }
-    free(adj);
   }
   Serial.print("No way to reach cheese");
+  free(adj);
   free(q);
   free(visited);
   return (uint8_t) NULL;
@@ -249,7 +271,9 @@ uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest) 
   }
   path[0] = dest;
   // while not at mouse starting position = 0
-  while (path[count-1] != 0) {
+  while (path[count-1] != dest) {
+    Serial.print("path[count-1]: ");
+    Serial.println(path[count-1]);
     for (int i = 0; i < len; i++) {
       if (visited[i].pt == path[count - 1]) {
 	path[count] = visited[i].parent;
