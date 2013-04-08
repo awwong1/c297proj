@@ -909,6 +909,8 @@ void loop() {
 	  }
 	  if (digitalRead(buttonpause) == 0) {
 	    clear_corner_select(wallpos, point_array);
+	    drawtext("Back...");
+	    delay(1000);
 	    drawtext("Editor mode...");
 	    break;
 	  }
