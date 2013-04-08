@@ -53,6 +53,7 @@ void initialize();
 void initialize_joy();
 void initialize_cheese();
 point * initialize_map(point * point_array);
+void initialize_null_walls();
 void initialize_rand_walls(point * point_array);
 uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
 void random_cheese();
@@ -160,6 +161,18 @@ point * initialize_map(point * pointarray) {
   // This is placed here for visuals. Also, walls draw over corners currently.
   draw_corners(point_array);
   return point_array;
+}
+
+void initialize_null_walls() {
+  point nullpoint;
+  nullpoint.x_coord = 0;
+  nullpoint.y_coord = 0;
+  for (uint8_t cellno = 0; cellno < 65; cellno++) {
+    for (uint8_t wallno = 0; wallno < 2; wallno++) {
+      wall_array[cellno][wallno].pt1 = nullpoint;
+      wall_array[cellno][wallno].pt2 = nullpoint;
+    }
+  }
 }
 
 void initialize_rand_walls(point *point_array) {
@@ -434,7 +447,7 @@ void draw_walls() {
       point apoint = wall_array[cell][wall].pt1;
       point bpoint = wall_array[cell][wall].pt2;
       
-      tft.drawLine(apoint.x_coord, apoint.y_coord, bpoint.x_coord, bpoint.y_coord, 0x0990);
+      tft.drawLine(apoint.x_coord, apoint.y_coord, bpoint.x_coord, bpoint.y_coord, ST7735_BLUE);
     }
   }
 }
@@ -474,17 +487,11 @@ void draw_cheese(point *point_array) {
 }
 
 void drawtext(char *text) {
-  Serial.println("Filling screen with black... ");
   tft.fillRect(0, 128, 128, 32, ST7735_BLACK);
-  Serial.println("Setting cursor to 0, 128");
   tft.setCursor(0, 128);
-  Serial.println("Setting text to equal white");
   tft.setTextColor(ST7735_WHITE);
-  Serial.println("Setting textwrap equal true");
   tft.setTextWrap(true);
-  Serial.println("Printing text");
   tft.print(text);
-  Serial.println("Done printing text");
 }
 
 uint8_t user_walls(){
@@ -568,9 +575,83 @@ void togglewall(uint8_t corner1, uint8_t corner2, point *point_array) {
     a wall exists between those points. If the wall exists, this
     function will remove the wall in question, else it will create a
     wall between those two points.
-
+    
     UNDER CONSTRUCTION
-   */
+  */
+  
+  // Find the minimum corner
+  uint8_t cell;
+  uint8_t wallcorner;
+  uint8_t wall;
+  if (corner1 == corner2) {
+    drawtext("Invalid wall, same point");
+    delay(1000);
+    return;
+  }
+  if (corner1 < corner2) {
+    cell = corner1;
+    wallcorner = corner2;
+  }
+  else {
+    cell = corner2;
+    wallcorner = corner1;
+  }
+  if (wallcorner == (cell + 1)) {
+    wall = 0;
+  }
+  else {
+    wall = 1;
+  }
+  if (DEBUG) {
+    Serial.print("Cell Number: ");
+    Serial.print(cell);
+    Serial.print(", Wall Corner Number: ");
+    Serial.println(wallcorner);
+  }
+
+  // check if a wall exists
+  if (DEBUG) {
+    Serial.println("Map Wall Struct Values: ");
+    Serial.print("Cell Number = ");
+    Serial.println(cell);
+    Serial.print("WALLARRAY Point 1 Coordinates: (");
+    Serial.print(wall_array[cell][wall].pt1.x_coord);
+    Serial.print(", ");
+    Serial.print(wall_array[cell][wall].pt1.y_coord);
+    Serial.println(")");
+    Serial.print("WALLARRAY Point 2 Coordinates: (");
+    Serial.print(wall_array[cell][wall].pt2.x_coord);
+    Serial.print(", ");
+    Serial.print(wall_array[cell][wall].pt2.y_coord);
+    Serial.println(")");
+    Serial.print("POINTARRAY Point 1 Coordinates: (");
+    Serial.print(point_array[cell].x_coord);
+    Serial.print(", ");
+    Serial.print(point_array[cell].y_coord);
+    Serial.println(")");
+    Serial.print("POINTARRAY Point 2 Coordinates: (");
+    Serial.print(point_array[wallcorner].x_coord);
+    Serial.print(", ");
+    Serial.print(point_array[wallcorner].y_coord);
+    Serial.println(")");
+  }
+  if (point_array[cell].x_coord == wall_array[cell][wall].pt1.x_coord && point_array[cell].y_coord == wall_array[cell][wall].pt1.y_coord && point_array[wallcorner].x_coord == wall_array[cell][wall].pt2.x_coord && point_array[wallcorner].y_coord == wall_array[cell][wall].pt2.y_coord) {
+    // Toggle off
+    point nullpoint;
+    nullpoint.x_coord = 0;
+    nullpoint.y_coord = 0;
+    wall_array[cell][wall].pt1 = nullpoint;
+    wall_array[cell][wall].pt2 = nullpoint;
+    tft.drawLine(point_array[cell].x_coord, point_array[cell].y_coord, point_array[wallcorner].x_coord, point_array[wallcorner].y_coord, ST7735_BLACK);
+  }
+  else {
+    wall_array[cell][wall].pt1 = point_array[cell];
+    wall_array[cell][wall].pt2 = point_array[wallcorner];
+    tft.drawLine(wall_array[cell][wall].pt1.x_coord, wall_array[cell][wall].pt1.y_coord, wall_array[cell][wall].pt2.x_coord, wall_array[cell][wall].pt2.y_coord, ST7735_BLUE);
+  }
+  drawtext("Wall has been toggled");
+  delay(1000);
+  return;
 }
 
 uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
@@ -630,6 +711,7 @@ void setup() {
     
   initialize_mouse();
   initialize_cheese();
+  initialize_null_walls();
   draw_corners(point_array);
 
 
@@ -736,13 +818,7 @@ void loop() {
 	      break;
 	    }
 	    else {
-	      /*
-		UNDER CONSTRUCTION
-	       */
-	      
-	      // togglewall(cornerpos, wallpos, point_array);
-	      drawtext("Wall has been toggled\n (Under construction)");
-	      delay(1000);
+	      togglewall(cornerpos, wallpos, point_array);
 	      clear_corner_select(wallpos, point_array);
 	      drawtext("Editor mode...");
 	      break;
