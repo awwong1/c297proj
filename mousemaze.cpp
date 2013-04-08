@@ -734,13 +734,10 @@ void loop() {
       trigger = 0;
 
     }
-<<<<<<< HEAD
     // random_cheese();
-=======
     random_cheese();
     Serial.print("Cheese moved to: ");
     Serial.println(cheese.cur_pos);
->>>>>>> a6addc149b958f6295a27956bb1d697f8993d96f
     draw_cheese(point_array);
     Serial.print("Cheese drawn at: ");
     Serial.println(cheese.cur_pos);
