@@ -38,10 +38,10 @@ uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 uint16_t num_walls = 0;
 uint8_t pause;
-point * point_array;
+point point_array[81];
 entity mouse;
 entity cheese;
-wall wall_array[65][2];
+wall wall_array[81][2];
 
 point nullpoint;
 
@@ -52,7 +52,7 @@ uint8_t getSeed();
 void initialize();
 void initialize_joy();
 void initialize_cheese();
-point * initialize_map(point * point_array);
+void initialize_map(point * point_array);
 void initialize_null_walls();
 void initialize_rand_walls(point * point_array);
 uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
@@ -126,16 +126,13 @@ void initialize_cheese() {
   cheese.cur_pos = 70;
 }
 
-point * initialize_map(point * pointarray) {
+void initialize_map(point * pointarray) {
   /*
     Initialize all points that will appear on the screen
    */
   
   int num_points = map_x * map_y;
   int count = 0;
-  
-  point_array[0].x_coord = 0;
-  point_array[0].y_coord = 0;
 
   // Offset by 3 pixels to prevent left side off screen
   for (int y = 0; y < map_y; y++) {
@@ -144,31 +141,31 @@ point * initialize_map(point * pointarray) {
       int x_coord = (x * 15) + 3;
       point_array[count].x_coord = x_coord;
       point_array[count].y_coord = y_coord;
+      if (DEBUG) {
+	Serial.print("x: ");
+	Serial.print(x);
+	Serial.print(", y: ");
+	Serial.print(y);
+	Serial.print(", i: ");
+	Serial.print(count);
+	Serial.print(": ");
+	Serial.print(point_array[count].x_coord);
+	Serial.print(", ");
+	Serial.println(point_array[count].y_coord);
+      }
       count++;
     }
   }
   
-  if (DEBUG) {
-    Serial.print("Points being initialized: ");
-    for (int i = 0; i < num_points; i++) {
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.print(point_array[i].x_coord);
-      Serial.print(", ");
-      Serial.println(point_array[i].y_coord);
-    }
-  }
-
   // This is placed here for visuals. Also, walls draw over corners currently.
   draw_corners(point_array);
-  return point_array;
 }
 
 void initialize_null_walls() {
   point nullpoint;
   nullpoint.x_coord = 0;
   nullpoint.y_coord = 0;
-  for (uint8_t cellno = 0; cellno < 65; cellno++) {
+  for (uint8_t cellno = 0; cellno < 72; cellno++) {
     for (uint8_t wallno = 0; wallno < 2; wallno++) {
       wall_array[cellno][wallno].pt1 = nullpoint;
       wall_array[cellno][wallno].pt2 = nullpoint;
@@ -200,12 +197,10 @@ void initialize_rand_walls(point *point_array) {
       while ( 1 ) {}
     }
 
-    // Choose a random cell from 0 to 63 inclusive, 
-    // Of that cell, pick a random wall from 0 to 1 inclusive
-    pt1 = random(63);
+    pt1 = random(72);
     
     while (pt1 % 9 == 8) {
-      pt1 = random(63);
+      pt1 = random(72);
     }
 
     options = get_options(pt1, options);
@@ -281,9 +276,32 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t* options){
       continue;
     }
     // No valid edge, put in the dummy point
-    options[wallchoice] = 64;
+    options[wallchoice] = 255;
   }
   return options;
+}
+
+void print_all_walls() {
+  if (DEBUG) {
+    for (uint8_t cell = 0; cell < 81; cell++) {
+      for (uint8_t wall = 0; wall < 2; wall++) {
+	Serial.print("[");
+	Serial.print(cell);
+	Serial.print("][");
+	Serial.print(wall);
+	Serial.print("]: pt1(");
+	Serial.print(wall_array[cell][wall].pt1.x_coord);
+	Serial.print(", ");
+	Serial.print(wall_array[cell][wall].pt1.y_coord);
+	Serial.print("), pt2(");
+	Serial.print(wall_array[cell][wall].pt2.x_coord);
+	Serial.print(", ");
+	Serial.print(wall_array[cell][wall].pt2.y_coord);
+	Serial.println(")");
+      }
+    }
+  }
+  return;
 }
 
 void random_cheese() {
@@ -293,7 +311,7 @@ void random_cheese() {
     jump to a new location
    */
   while(1) {
-    uint8_t location = random(81);
+    uint8_t location = random(71);
     if (location > 71 || location % 9 == 8 || location == mouse.cur_pos) {
       continue;
     }
@@ -761,15 +779,7 @@ uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
 void setup() {
   initialize();
   initialize_joy();
-  
-  point_array = (typeof(point_array)) malloc(sizeof(*point_array) * map_x * map_y);
-  if (point_array == 0) {
-    Serial.println("No Memory");
-    while (1) {}
-  }
-
-  point_array = initialize_map(point_array);
-  
+  initialize_map(point_array);
   initialize_mouse();
   initialize_cheese();
   initialize_null_walls();
@@ -815,6 +825,8 @@ void loop() {
       drawtext("Editor mode...");
       draw_corner_select(cornerpos, point_array, ST7735_RED);
       trigger = 0;
+      // Note: print_all_walls takes a couple seconds
+      // print_all_walls();
     }
     uint8_t edtrigger = 0;
     uint8_t joytrigger = 0;
