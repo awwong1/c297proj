@@ -928,7 +928,7 @@ void loop() {
       drawtext("Simulating...");
       trigger = 0;
     }
-    random_cheese();
+    // random_cheese();
     draw_cheese(point_array);
     draw_mouse(point_array);
     delay(100);
