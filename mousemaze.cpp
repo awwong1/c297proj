@@ -66,13 +66,14 @@ uint8_t read_joy_input();
 
 void setup();
 void loop();
-uint8_t * bfs(entity mouse, entity cheese);
+node * bfs(point * point_array, node * visited, entity mouse, entity cheese);
 uint8_t adj_to(uint8_t cur, uint8_t * adj);
 bool is_equal(point pt1, point pt2);
 queue* create_queue(uint8_t maxElements);
 void dequeue(queue *q);
 void enqueue(queue *q, uint8_t element);
-bool membership (uint8_t * a_list, uint8_t len, uint8_t element);
+bool membership_visited (node * a_list, uint8_t len, uint8_t element);
+bool membership_queue (queue * a_list, uint8_t len, uint8_t element);
 
 uint8_t getSeed(){
   uint8_t seed = 0;
@@ -339,37 +340,44 @@ void random_cheese() {
   }  
 }
 
-uint8_t * bfs(point * point_array, uint8_t * visited, entity mouse, entity cheese) {
+node * bfs(point * point_array, node * visited, entity mouse, entity cheese) {
   /*
     performs a breadth first search from mouse to cheese
     returns array with path
   */
+
   uint8_t * adj;
   adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
   queue * q = create_queue(64);
   uint8_t count = 0;
   uint8_t adj_len;
-  uint8_t cur;
+  uint8_t cur_pt;
+  node cur;
+  Serial.print("mouse is at: ");
+  Serial.println(mouse.cur_pos);
+  Serial.print("cheese is at: ");
+  Serial.println(cheese.cur_pos);
+
   // mouse has visited vertex it is now at;
-  //  visited[mouse.cur_pos] = 1;
   enqueue(q, mouse.cur_pos);
-  //  enqueue(visited, mouse.cur_pos);
 
   while(q->size) {
-    cur = q->elements[q->front];
+    cur_pt = q->elements[q->front];
     Serial.print("current node: ");
-    Serial.println(cur);
+    Serial.println(cur_pt);
     dequeue(q);
-    if (cur == cheese.cur_pos) {
+    if (cur.pt == cheese.cur_pos) {
       Serial.println("mouse has found the cheese");
       return visited;
     }
     // check neighbours
-    adj_len = adj_to(cur, adj);
+    adj_len = adj_to(cur.pt, adj);
     for (int i = 0; i < adj_len; i++) {
       // if not in visited, add to queue
-      if (membership(adj, adj_len, adj[i]) &&
-	  membership(visited, count, adj[i]) == false) {
+      if (membership_visited(visited, count, adj[i]) == false &&
+	  membership_queue(q, q->size, adj[i]) == false) {
+	cur.parent = cur_pt;
+	cur.pt = adj[i];
 	visited[count] = cur;
 	count++;
 	enqueue(q, adj[i]);
@@ -377,18 +385,31 @@ uint8_t * bfs(point * point_array, uint8_t * visited, entity mouse, entity chees
     }
     free(adj);
   }
-  // TODO: free q
   Serial.print("No way to reach cheese");
-  return (uint8_t*) NULL;
+  free(q);
+  return (node*) NULL;
 }
 
-bool membership (uint8_t * a_list, uint8_t len, uint8_t element) {
+bool membership_visited (node * a_list, uint8_t len, uint8_t element) {
   /*
-    Tests if element is in a list.  Returns true or false.
+    Tests if element is in a list of nodes.  Returns true or false.
    */
   bool in_list = false;
   for (int i = 0; i < len; i++) {
-    if (a_list[i] == element) {
+    if (a_list[i].pt == element) {
+      in_list = true;
+    }
+  }
+  return in_list;
+}
+
+bool membership_queue (queue * a_list, uint8_t len, uint8_t element) {
+  /*
+    Tests if element is in a queue of elements.  Returns true or false.
+   */
+  bool in_list = false;
+  for (int i = 0; i < len; i++) {
+    if (a_list->elements[i] == element) {
       in_list = true;
     }
   }
@@ -398,6 +419,7 @@ bool membership (uint8_t * a_list, uint8_t len, uint8_t element) {
 uint8_t adj_to(uint8_t cur, uint8_t * adj) {
   /*
     returns vertices that are adjacent to cur
+    stores in * adj and returns no. of elements
    */
   uint8_t count = 0;
   bool top = false;
@@ -409,10 +431,10 @@ uint8_t adj_to(uint8_t cur, uint8_t * adj) {
   if (cur < 9) {
     top = true;
   }
-  if (cur > 72) {
+  if (cur > 62) {
     bottom = true;
   }
-  if (cur % 9 == 8) {
+  if (cur % 9 == 7) {
     right = true;
   }
   if (cur % 9 == 0) {
@@ -424,7 +446,7 @@ uint8_t adj_to(uint8_t cur, uint8_t * adj) {
       is_equal(wall_array[cur][1].pt2, nullpoint)) {
     adj[count] = cur - 1;
     if (left) {
-      adj[count] = cur + 8;
+      adj[count] = cur + 7;
     }
     count++;
   }
@@ -433,7 +455,7 @@ uint8_t adj_to(uint8_t cur, uint8_t * adj) {
       is_equal(wall_array[cur][0].pt2, nullpoint)) {
     adj[count] = cur - 9;
     if (top) {
-      adj[count] = cur + 72;
+      adj[count] = cur + 63;
     }
     count++;
   }
@@ -442,7 +464,7 @@ uint8_t adj_to(uint8_t cur, uint8_t * adj) {
       is_equal(wall_array[cur + 9][0].pt2, nullpoint)) {
     adj[count] = cur + 9;
     if (bottom) {
-      adj[count] = cur - 72;
+      adj[count] = cur - 63;
     }
     count++;
   }
@@ -451,7 +473,7 @@ uint8_t adj_to(uint8_t cur, uint8_t * adj) {
       is_equal(wall_array[cur + 1][1].pt2, nullpoint)) {
     adj[count] = cur + 1;
     if (right) {
-      adj[count] = cur - 8;
+      adj[count] = cur - 7;
     }
     count++;
   }
@@ -791,6 +813,8 @@ void setup() {
   initialize_map(point_array);
   initialize_mouse();
   initialize_cheese();
+  Serial.print("Cheese initialized to: ");
+  Serial.println(cheese.cur_pos);
   initialize_null_walls();
   draw_corners(point_array);
 
@@ -927,25 +951,30 @@ void loop() {
     if(trigger) {
       drawtext("Simulating...");
       trigger = 0;
+
     }
     random_cheese();
+    Serial.print("Cheese moved to: ");
+    Serial.println(cheese.cur_pos);
     draw_cheese(point_array);
+    Serial.print("Cheese drawn at: ");
+    Serial.println(cheese.cur_pos);
     draw_mouse(point_array);
     delay(100);
   }
   draw_corners(point_array);
-  // uint8_t * visited;
-  // visited = (typeof(visited)) malloc(sizeof(* visited) * 81);
-  // visited = bfs(point_array, visited, mouse, cheese);
   
-  /*
+  // find path
+  node * visited;
+  visited = (typeof(visited)) malloc(sizeof(* visited) * 81);
+  visited = bfs(point_array, visited, mouse, cheese);
+  
   if (!visited) {
-    Serial.println("No path, reinitialize walls");
-    initialize_null_walls();
-    initialize_rand_walls(point_array);
-    draw_walls();
+    Serial.println("No path, cheese reset");
   }
-  */
-
+  else {
+      drawtext("You have found the cheese!");
+    }
+  free(visited);
   trigger = 0;
 }
