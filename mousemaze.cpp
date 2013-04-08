@@ -38,11 +38,10 @@ uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 uint16_t num_walls = 0;
 uint8_t pause;
-point point_array[81];
 entity mouse;
 entity cheese;
 wall wall_array[81][2];
-
+point point_array[81];
 point nullpoint;
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
@@ -165,7 +164,7 @@ void initialize_null_walls() {
   point nullpoint;
   nullpoint.x_coord = 0;
   nullpoint.y_coord = 0;
-  for (uint8_t cellno = 0; cellno < 72; cellno++) {
+  for (uint8_t cellno = 0; cellno < 81; cellno++) {
     for (uint8_t wallno = 0; wallno < 2; wallno++) {
       wall_array[cellno][wallno].pt1 = nullpoint;
       wall_array[cellno][wallno].pt2 = nullpoint;
@@ -722,11 +721,13 @@ void togglewall(uint8_t corner1, uint8_t corner2, point *point_array) {
     wall_array[cell][wall].pt1 = nullpoint;
     wall_array[cell][wall].pt2 = nullpoint;
     tft.drawLine(point_array[cell].x_coord, point_array[cell].y_coord, point_array[wallcorner].x_coord, point_array[wallcorner].y_coord, ST7735_BLACK);
+    num_walls--;
   }
   else {
     wall_array[cell][wall].pt1 = point_array[cell];
     wall_array[cell][wall].pt2 = point_array[wallcorner];
     tft.drawLine(wall_array[cell][wall].pt1.x_coord, wall_array[cell][wall].pt1.y_coord, wall_array[cell][wall].pt2.x_coord, wall_array[cell][wall].pt2.y_coord, ST7735_BLUE);
+    num_walls++;
   }
   drawtext("Wall has been toggled");
   delay(1000);
@@ -886,12 +887,14 @@ void loop() {
 	      drawtext("Same point, invalid");
 	      delay(1000);
 	      clear_corner_select(wallpos, point_array);
+	      draw_corners(point_array);
 	      drawtext("Editor mode...");
 	      break;
 	    }
 	    else {
 	      togglewall(cornerpos, wallpos, point_array);
 	      clear_corner_select(wallpos, point_array);
+	      draw_corners(point_array);
 	      drawtext("Editor mode...");
 	      break;
 	    }
