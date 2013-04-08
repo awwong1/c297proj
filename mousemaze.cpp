@@ -593,7 +593,6 @@ uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
 
 void setup() {
   path = (typeof(path)) malloc(sizeof(path) * 81);
-
   initialize();
   initialize_joy();
   initialize_map(point_array);
@@ -741,10 +740,15 @@ void loop() {
       drawtext("Simulating...");  
       Serial.println("Path function begins.");
       random_cheese();
+      draw_mouse(point_array);
+      draw_cheese(point_array);
       path_len = bfs(point_array, path, mouse, cheese);
       Serial.println("Path function ends.");
       if (!path_len) {
 	Serial.println("No path, cheese reset");
+	drawtext("No path exists, \nrefresh cheese");
+	path_len = 0;
+	delay(1000);
       } 
     } else {
       if (path_len != 0) {
@@ -754,6 +758,9 @@ void loop() {
 	draw_corners(point_array);
 	path_len--;
 	delay(500);
+      }
+      else {
+	drawtext("No path exists, \nrefresh cheese");
       }
     }
   }
