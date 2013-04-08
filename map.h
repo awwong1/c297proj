@@ -29,4 +29,9 @@ typedef struct {
   uint8_t *elements;
 } queue;
 
+typedef struct {
+  uint8_t pt;
+  uint8_t parent;
+} node;
+
 #endif
