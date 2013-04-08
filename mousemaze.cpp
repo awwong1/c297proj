@@ -521,7 +521,7 @@ void draw_corners(point *point_array) {
 }
 
 void draw_walls() {
-  for (int cell = 0; cell < 64; cell++) {
+  for (int cell = 0; cell < 71; cell++) {
     for (int wall = 0; wall < 2; wall++) {     
       point apoint = wall_array[cell][wall].pt1;
       point bpoint = wall_array[cell][wall].pt2;
@@ -529,6 +529,7 @@ void draw_walls() {
       tft.drawLine(apoint.x_coord, apoint.y_coord, bpoint.x_coord, bpoint.y_coord, ST7735_BLUE);
     }
   }
+  tft.drawPixel(0, 0, ST7735_BLACK);
 }
 
 void draw_mouse(point *point_array) {
@@ -674,6 +675,18 @@ void togglewall(uint8_t corner1, uint8_t corner2, point *point_array) {
     cell = corner2;
     wallcorner = corner1;
   }
+  
+  if (cell % 9 == 8) {
+    drawtext("No extreme \nright edge \nallowed...");
+    delay(1000);
+    return;
+  }
+  if (cell > 71) {
+    drawtext("No extreme \nbottom edge \nallowed...");
+    delay(1000);
+    return;
+  }
+  
   if (wallcorner == (cell + 1)) {
     wall = 0;
   }
@@ -685,10 +698,6 @@ void togglewall(uint8_t corner1, uint8_t corner2, point *point_array) {
     Serial.print(cell);
     Serial.print(", Wall Corner Number: ");
     Serial.println(wallcorner);
-  }
-
-  // check if a wall exists
-  if (DEBUG) {
     Serial.println("Map Wall Struct Values: ");
     Serial.print("Cell Number = ");
     Serial.println(cell);
