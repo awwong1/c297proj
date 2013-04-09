@@ -15,8 +15,6 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
     returns array with path
   */
 
-  Serial.println("\nBFS Code begins here");
-
   uint8_t * adj;
   adj = (typeof(adj)) malloc(sizeof(* adj) * 4);
   
@@ -26,6 +24,7 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
   } else {
     Serial.println("adj ok");
     Serial.println(AVAIL_MEM);
+    Serial.println(STACK_SIZE);
   }
 
   queue * q = create_queue(64);
@@ -61,6 +60,7 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
     if (cur_pt == cheese.cur_pos) {
       Serial.println("mouse has found the cheese");
       path_len = extract_path(visited, count, path, cheese.cur_pos, mouse.cur_pos);
+      free(q->elements);
       free(q);
       free(visited);
       free(adj);
@@ -81,6 +81,7 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
     }
   }
   Serial.print("No way to reach cheese");
+  free(q->elements);
   free(adj);
   free(q);
   free(visited);
