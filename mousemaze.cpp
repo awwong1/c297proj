@@ -66,13 +66,12 @@ uint8_t read_joy_input();
 
 void setup();
 void loop();
-uint8_t * bfs(point * point_array, uint8_t * path, entity mouse, entity cheese);
+uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese);
 uint8_t adj_to(uint8_t cur, uint8_t * adj);
 bool is_equal(point pt1, point pt2);
 queue* create_queue(uint8_t maxElements);
 void dequeue(queue *q);
 void enqueue(queue *q, uint8_t element);
-void draw_path(node * visited);
 bool membership_visited (node * a_list, uint8_t len, uint8_t element);
 bool membership_queue (queue * a_list, uint8_t len, uint8_t element);
 uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest);
@@ -342,7 +341,7 @@ void random_cheese() {
   }  
 }
 
-uint8_t * bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
+uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
   /*
     performs a breadth first search from mouse to cheese
     returns array with path
@@ -376,9 +375,7 @@ uint8_t * bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) 
     if (cur_pt == cheese.cur_pos) {
       Serial.println("mouse has found the cheese");
       path_len = extract_path(visited, count, path, cheese.cur_pos);
-      free(q);
-      free(visited);
-      return path;
+      return path_len;
     }
     // check neighbours
     adj_len = adj_to(cur_pt, adj);
@@ -398,7 +395,7 @@ uint8_t * bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) 
   Serial.print("No way to reach cheese");
   free(q);
   free(visited);
-  return (uint8_t*) NULL;
+  return (uint8_t) NULL;
 }
 
 bool membership_visited (node * a_list, uint8_t len, uint8_t element) {
@@ -561,13 +558,6 @@ void enqueue(queue *q, uint8_t element) {
     // insert element at rear
     q->elements[q->rear] = element;
   }
-  return;
-}
-
-void draw_path(node * visited) {
-  /* 
-     Draws the mouse moving along the path given by visited
-   */
   return;
 }
 
@@ -1021,17 +1011,21 @@ void loop() {
 
   uint8_t * path;
   path = (typeof(path)) malloc(sizeof(* path) * 81);
+  uint8_t path_len;
   
   // find path
-  path = bfs(point_array, path, mouse, cheese);
-  
+  path_len = bfs(point_array, path, mouse, cheese);
   if (!path) {
     Serial.println("No path, cheese reset");
   }
   else {
-    //draw_path(visited);
-    drawtext("You have found the cheese!");
+    for (int i = path_len; i >= 0; i--) {
+      move_mouse_to(path[i]);
+      draw_mouse(point_array);
+      delay(1000);
     }
+    drawtext("You have found the cheese!");
+  }
   free(path);
   trigger = 0;
 }
