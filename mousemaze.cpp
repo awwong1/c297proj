@@ -72,8 +72,10 @@ bool is_equal(point pt1, point pt2);
 queue* create_queue(uint8_t maxElements);
 void dequeue(queue *q);
 void enqueue(queue *q, uint8_t element);
+void draw_path(node * visited);
 bool membership_visited (node * a_list, uint8_t len, uint8_t element);
 bool membership_queue (queue * a_list, uint8_t len, uint8_t element);
+uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest);
 
 uint8_t getSeed(){
   uint8_t seed = 0;
@@ -353,6 +355,10 @@ node * bfs(point * point_array, node * visited, entity mouse, entity cheese) {
   uint8_t adj_len;
   uint8_t cur_pt;
   node cur;
+  uint8_t * path;
+  path = (typeof(path)) malloc(sizeof(* path) * count);
+  uint8_t path_len;
+
   Serial.print("mouse is at: ");
   Serial.println(mouse.cur_pos);
   Serial.print("cheese is at: ");
@@ -366,12 +372,14 @@ node * bfs(point * point_array, node * visited, entity mouse, entity cheese) {
     Serial.print("current node: ");
     Serial.println(cur_pt);
     dequeue(q);
-    if (cur.pt == cheese.cur_pos) {
+    if (cur_pt == cheese.cur_pos) {
       Serial.println("mouse has found the cheese");
+      path_len = extract_path(visited, count, path, cheese.cur_pos);
+      free(q);
       return visited;
     }
     // check neighbours
-    adj_len = adj_to(cur.pt, adj);
+    adj_len = adj_to(cur_pt, adj);
     for (int i = 0; i < adj_len; i++) {
       // if not in visited, add to queue
       if (membership_visited(visited, count, adj[i]) == false &&
@@ -512,7 +520,7 @@ queue* create_queue(uint8_t maxElements) {
   q->capacity = maxElements;
   q->front = 0;
   q->rear = -1;
-
+  
   return q;
 }
 
@@ -551,6 +559,50 @@ void enqueue(queue *q, uint8_t element) {
     q->elements[q->rear] = element;
   }
   return;
+}
+
+void draw_path(node * visited) {
+  /* 
+     Draws the mouse moving along the path given by visited
+   */
+  return;
+}
+
+uint8_t extract_path(node * visited, uint8_t len, uint8_t * path, uint8_t dest) {
+  /*
+    extracts path from visited list.  Returns no. of elements
+   */
+  uint8_t count = 1;
+  if (DEBUG) {
+    Serial.print("Parent list is: ");
+    for (int i = 0; i < len; i++) {
+      Serial.print(visited[i].pt);
+      Serial.print(": ");
+      Serial.print(visited[i].parent);
+      Serial.print(", ");
+    }
+    Serial.println("");
+  }
+  path[0] = dest;
+  // while not at mouse starting position = 0
+  while (path[count-1] != 0) {
+    for (int i = 0; i < len; i++) {
+      if (visited[i].pt == path[count - 1]) {
+	path[count] = visited[i].parent;
+	count++;
+	break;
+      }
+    }
+  }
+  if (DEBUG) {
+    Serial.print("Path is: ");
+    for (int i = 0; i < count; i++) {
+      Serial.print(path[i]);
+      Serial.print(", ");
+    }
+    Serial.println("");
+  }
+  return count;
 }
 
 void draw_corners(point *point_array) {
@@ -973,7 +1025,8 @@ void loop() {
     Serial.println("No path, cheese reset");
   }
   else {
-      drawtext("You have found the cheese!");
+    //draw_path(visited);
+    drawtext("You have found the cheese!");
     }
   free(visited);
   trigger = 0;
