@@ -80,6 +80,7 @@ uint8_t bfs(point * point_array, uint8_t * path, entity mouse, entity cheese) {
       }
     }
   }
+
   Serial.print("No way to reach cheese");
   free(q->elements);
   free(adj);
