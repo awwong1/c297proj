@@ -47,6 +47,7 @@ point nullpoint;
 uint8_t * path;
 uint8_t path_len = 0; 
 uint8_t trigger;
+uint8_t refresh_cheese;
 
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
@@ -615,18 +616,24 @@ void setup() {
   draw_mouse(point_array);
   draw_cheese(point_array);
   pause = 0;
+  refresh_cheese = 0;
 }
 
 void loop() {
   // Two different states; One for wall placement, One for mouse cycle
   // pause = 0; Simulate mouse finding cheese
   // pause = 1; Editor mode
-  trigger = 0;
-  if (path_len == 0) {
-    trigger = 1;
-  }
   uint8_t cornerpos = 255;
-  
+  trigger = 0;
+
+  if (path_len == 0) { trigger = 1; }
+  if (refresh_cheese) {
+    if (DEBUG) {
+      Serial.println("Cheese has been refreshed");
+    }
+    random_cheese();
+    refresh_cheese = 0;
+  }
   while (digitalRead(buttonpause) == 0) {
     if (!trigger){
       if (pause) { 
@@ -637,8 +644,8 @@ void loop() {
 	pause = 1; 
 	cornerpos = 0;
       }
+      trigger = 1;
     }
-    trigger = 1;
   }
   
   if (pause){
@@ -646,7 +653,6 @@ void loop() {
       drawtext("Editor mode...");
       draw_corner_select(cornerpos, point_array, ST7735_RED);
       trigger = 0;
-      // Note: print_all_walls takes a couple seconds
       // print_all_walls();
     }
     uint8_t edtrigger = 0;
@@ -657,12 +663,8 @@ void loop() {
     uint8_t wedtrigger = 0;
     uint8_t wjoytrigger = 0;
     while(1) {
-      if (edtrigger == 0 && joytrigger == 0) {
-	direction = read_joy_input();
-      }
-      if (direction != 255) {
-	joytrigger = 1;
-      }
+      if (edtrigger == 0 && joytrigger == 0) { direction = read_joy_input();}
+      if (direction != 255) { joytrigger = 1;}
       if (joytrigger == 1 && edtrigger == 0){
 	clear_corner_select(cornerpos, point_array);
 	cornerpos = move_to_corner(cornerpos, direction);
@@ -731,36 +733,61 @@ void loop() {
       }
       if (digitalRead(buttonpause) == 0) {
 	clear_corner_select(cornerpos, point_array);
+	pause = 0;
+	trigger = 1;
 	break;
       }
     }
   }
-  else if (!pause) {
+  if (!pause) {
     if(trigger) {
-      drawtext("Simulating...");  
+      drawtext("Finding Path...");  
       Serial.println("Path function begins.");
-      random_cheese();
-      draw_mouse(point_array);
       draw_cheese(point_array);
+      draw_mouse(point_array);
       path_len = bfs(point_array, path, mouse, cheese);
+      draw_mouse(point_array);
       Serial.println("Path function ends.");
+      
       if (!path_len) {
+	digitalWrite(nopthled, HIGH);
 	Serial.println("No path, cheese reset");
 	drawtext("No path exists, \nrefresh cheese");
+	draw_mouse(point_array);
+	refresh_cheese = 1;
 	path_len = 0;
 	delay(1000);
       } 
-    } else {
-      if (path_len != 0) {
+      while (digitalRead(buttonpause) == 0) {
+	pause = 1;
+	cornerpos = 0;
+	trigger = 1;
+      }
+    } 
+    else {
+      if (path_len < 81) {
+	if (DEBUG) {
+	  Serial.print("Mouse has stepped: ");
+	  Serial.println(path_len - 1);
+	}
+	digitalWrite(nopthled, LOW);
+	drawtext("Simulating...");
 	move_mouse_to(path[path_len-1]);
 	draw_cheese(point_array);
 	draw_mouse(point_array);
 	draw_corners(point_array);
 	path_len--;
+	if (path_len-1 == 0) {
+	  // Move the cheese to a new location
+	  refresh_cheese = 1;
+	}
 	delay(500);
       }
-      else {
+      else if (path_len >= 81) {
+	// Shouldn't ever get here, but just in case
 	drawtext("No path exists, \nrefresh cheese");
+	refresh_cheese = 1;
+	delay(1000);
       }
     }
   }
