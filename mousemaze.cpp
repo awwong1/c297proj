@@ -750,6 +750,7 @@ void loop() {
       Serial.println("Path function ends.");
       
       if (!path_len) {
+	// LED ON
 	digitalWrite(nopthled, HIGH);
 	Serial.println("No path, cheese reset");
 	drawtext("No path exists, \nrefresh cheese");
@@ -770,6 +771,7 @@ void loop() {
 	  Serial.print("Mouse has stepped: ");
 	  Serial.println(path_len - 1);
 	}
+	// LED OFF
 	digitalWrite(nopthled, LOW);
 	drawtext("Simulating...");
 	move_mouse_to(path[path_len-1]);
