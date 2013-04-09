@@ -15,7 +15,7 @@
 #include "map.h"
 #include "bfs.h"
 
-#define DEBUG    1      // Set this to 1 for debug serial printing
+#define DEBUG    0      // Set this to 1 for debug serial printing
 #define joyhor   0      // Analog pin 0
 #define joyver   1      // Analog pin 1
 #define joypush  11     // Digital pin 11
@@ -74,6 +74,9 @@ void setup();
 void loop();
 
 uint8_t getSeed(){
+  /*
+    This function gets a pseudo random seed value for the random function
+   */
   uint8_t seed = 0;
   for(int i = 0; i < 8; i++) {
     seed = seed << 1;
@@ -83,9 +86,13 @@ uint8_t getSeed(){
 }
 
 void initialize() {
+  /*
+    Initialize serial monitor, LED, Pause button, SD Card
+    Fill the screen with black pixels
+   */
   Serial.begin(9600);
-
   pinMode(nopthled, OUTPUT);
+  digitalWrite(buttonpause, HIGH);
 
   tft.initR(INITR_REDTAB);
   Serial.print("Initializing SD card... ");
@@ -94,18 +101,18 @@ void initialize() {
     return;
   }
   Serial.println("OK!");
-
   tft.fillScreen(tft.Color565(0x00, 0x00, 0x00));
 }
 
 void initialize_joy() {
-  // Centers the joystick
+  /*
+    Center the joystick, store the values into the global containers
+   */
+
   pinMode(joypush, INPUT);
   digitalWrite(joypush, HIGH);
   joyceny = analogRead(joyver);
   joycenx = analogRead(joyhor);
-  // Initialize the pause button
-  digitalWrite(buttonpause, HIGH);
 }
 
 void initialize_mouse() {
@@ -160,6 +167,10 @@ void initialize_map(point * pointarray) {
 }
 
 void initialize_null_walls() {
+  /*
+    Make all the points of each wall equal to the nullpoint
+    Make the nullpoint point to (0,0)
+   */
   point nullpoint;
   nullpoint.x_coord = 0;
   nullpoint.y_coord = 0;
@@ -173,7 +184,8 @@ void initialize_null_walls() {
 
 void initialize_rand_walls(point *point_array) {
   /*
-    place walls randomly in map
+    Place walls randomly in map, walls must be placed in valid
+    locations. No_walls does not have to have uniquely placed walls
    */
 
   uint8_t pt1, pt2;
@@ -183,20 +195,15 @@ void initialize_rand_walls(point *point_array) {
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
   }
-  
-  // For every point 1, point 2 must be the x/y adjacent point
-  // Usually can be +-1 or +-9, with the exception of the edges
   for (uint8_t i = 0; i < no_walls; i++){
     uint8_t * options;
     options = (typeof(options)) malloc(sizeof(* options) * 2);
-    // always check the return code of malloc
     if ( options == 0 ) {
       Serial.println("No memory!");
       while ( 1 ) {}
     }
-
+    // Get a cell number
     pt1 = random(72);
-    
     while (pt1 % 9 == 8) {
       pt1 = random(72);
     }
@@ -204,6 +211,7 @@ void initialize_rand_walls(point *point_array) {
     options = get_options(pt1, options);
     uint8_t wallchoice;
     while(1) {
+      // Get a wall number
       wallchoice = random(2);
       pt2 = options[wallchoice];
       if (DEBUG) {
@@ -217,6 +225,7 @@ void initialize_rand_walls(point *point_array) {
       }
     }
     
+    // Assign the proper points to their wall array
     wall_array[pt1][wallchoice].pt1 = point_array[pt1];
     wall_array[pt1][wallchoice].pt2 = point_array[pt2];
     
@@ -245,9 +254,9 @@ void initialize_rand_walls(point *point_array) {
 
 uint8_t * get_options(uint8_t pointvalue, uint8_t* options){
   /*
-    Get options takes a point 'pointvalue' and returns all of the
-    viable neighbors of pointvalue. With our current design, this will
-    return a point choice to the right of the point (+1), or below the
+    Get options takes a point 'pointvalue' and returns the viable
+    neighbors of pointvalue. With our current design, this will return
+    a point choice to the right of the point (+1), or below the
     point(+9)
    */
   uint8_t rightedge = 0;
@@ -280,6 +289,10 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t* options){
 }
 
 void print_all_walls() {
+  /*
+    Purely used for debugging purposes only.
+    This prints all the walls, their x/y coords to the serial monitor
+   */
   if (DEBUG) {
     for (uint8_t cell = 0; cell < 81; cell++) {
       for (uint8_t wall = 0; wall < 2; wall++) {
@@ -339,12 +352,21 @@ void random_cheese() {
 }
 
 void draw_corners(point *point_array) {
+  /*
+    This function draws all the corners on the map as white pixels on
+    the screen
+   */
   for (int pixel = 0; pixel < 81; pixel++) {
     tft.drawPixel(point_array[pixel].x_coord, point_array[pixel].y_coord, ST7735_WHITE);
   }
 }
 
 void draw_walls() {
+  /*
+    This function draws all the walls on the map as blue lines on the
+    screen. Also draws one black pixel at the top left corner to
+    account for the null walls
+   */
   for (int cell = 0; cell < 71; cell++) {
     for (int wall = 0; wall < 2; wall++) {     
       point apoint = wall_array[cell][wall].pt1;
@@ -391,6 +413,9 @@ void draw_cheese(point *point_array) {
 }
 
 void drawtext(char *text) {
+  /*
+    This function displays white text below the maze on the lcd screen
+   */
   tft.fillRect(0, 128, 128, 32, ST7735_BLACK);
   tft.setCursor(0, 128);
   tft.setTextColor(ST7735_WHITE);
@@ -399,11 +424,18 @@ void drawtext(char *text) {
 }
 
 uint8_t user_walls(){
+  /*
+    This function returns a boolean value (0 or 1) depending on yes or no
+   */
   drawtext("Init random walls?");
   return yes_or_no();
 }
 
 uint8_t yes_or_no(){
+  /*
+    This function asks the user a yes or no question, 
+    returning a boolean 0 or 1 based on the user answer
+   */
   tft.setCursor(78, 138);
   tft.print("N");
   tft.setCursor(26, 138);
@@ -458,6 +490,9 @@ uint8_t read_joy_input() {
 }
 
 void draw_corner_select(uint8_t corner, point *point_array, uint16_t color) {
+  /*
+    This function draws a corner selector on the map as a small circle
+   */
   if (corner >= 81) {
     return;
   }
@@ -466,6 +501,10 @@ void draw_corner_select(uint8_t corner, point *point_array, uint16_t color) {
 }
 
 void clear_corner_select(uint8_t corner, point *point_array) {
+  /*
+    This function draws a black corner selector on the map. Esentially this is 
+    the same as draw_corner_select except the color is default black
+   */
   if (corner >= 81) {
     return;
   }
