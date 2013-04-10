@@ -10,39 +10,23 @@
 #include <Adafruit_ST7735.h>
 #include <SD.h>
 #include <SPI.h>
+#include "map.h"
+#include "mousemaze.h"
 #include "mem_syms.h"
 #include "lcd_image.h"
-#include "map.h"
 #include "bfs.h"
+#include "queue.h"
 
-#define DEBUG    0      // Set this to 1 for debug serial printing
-#define joyhor   0      // Analog pin 0
-#define joyver   1      // Analog pin 1
-#define joypush  11     // Digital pin 11
-#define joyerr   50     // Joystick discrepancy
 
-#define nopthled 13     // No Path LED: Digital pin 13
-#define buttonpause 12  // Pause button: Digital pin 12
-
-// Standard U of A Library Settings, Assume Atmel Mega SPI pins
-#define SD_CS    5  // Chip select line for SD card
-#define TFT_CS   6  // Chip select line for TFT display
-#define TFT_DC   7  // Data/command line for TFT
-#define TFT_RST  8  // Reset line for TFT (or connect to +5V)
-
-// the board is 9 x 9 points large
-#define map_x    9
-#define map_y    9
-
-// Necessary global variables go here
+// global variables go here
 uint16_t joycenx;   // center value for x, should be around 512
 uint16_t joyceny;   // center value for y, should be around 512
 uint16_t num_walls = 0;
 uint8_t pause;
 entity mouse;
 entity cheese;
-wall wall_array[81][2];
-point point_array[81];
+wall wall_array[map_x * map_y][2];
+point point_array[map_x * map_y];
 point nullpoint;
 uint8_t * path;
 uint8_t path_len = 0; 
@@ -51,27 +35,6 @@ uint8_t refresh_cheese;
 
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
-
-// Forward declarations of project functions go here
-uint8_t getSeed();
-void initialize();
-void initialize_joy();
-void initialize_cheese();
-void initialize_map(point * point_array);
-void initialize_null_walls();
-void initialize_rand_walls(point * point_array);
-uint8_t * get_options(uint8_t pointvalue, uint8_t * options);
-void random_cheese();
-void draw_corners(point *point_array);
-void draw_walls();
-void drawtext(char *text);
-
-uint8_t user_walls();
-uint8_t yes_or_no();
-uint8_t read_joy_input();
-
-void setup();
-void loop();
 
 uint8_t getSeed(){
   /*
@@ -119,16 +82,16 @@ void initialize_mouse() {
   /*
     Place the mouse in the top left corner of the map
    */
-  mouse.prev_pos = 255;
-  mouse.cur_pos = 0;
+  mouse.prev_pos = null;
+  mouse.cur_pos = mouse_start;
 }
 
 void initialize_cheese() {
   /*
     Place the cheese in the bottom right corner of the map
    */
-  mouse.prev_pos = 255;
-  cheese.cur_pos = 70;
+  mouse.prev_pos = null;
+  cheese.cur_pos = cheese_start;
 }
 
 void initialize_map(point * pointarray) {
@@ -141,9 +104,9 @@ void initialize_map(point * pointarray) {
 
   // Offset by 3 pixels to prevent left side off screen
   for (int y = 0; y < map_y; y++) {
-    int y_coord =  (y * 15) + 3;
+    int y_coord =  (y * 15) + offset;
     for (int x = 0; x < map_x; x++) {
-      int x_coord = (x * 15) + 3;
+      int x_coord = (x * 15) + offset;
       point_array[count].x_coord = x_coord;
       point_array[count].y_coord = y_coord;
       if (DEBUG) {
@@ -174,7 +137,7 @@ void initialize_null_walls() {
   point nullpoint;
   nullpoint.x_coord = 0;
   nullpoint.y_coord = 0;
-  for (uint8_t cellno = 0; cellno < 81; cellno++) {
+  for (uint8_t cellno = 0; cellno < map_x * map_y; cellno++) {
     for (uint8_t wallno = 0; wallno < 2; wallno++) {
       wall_array[cellno][wallno].pt1 = nullpoint;
       wall_array[cellno][wallno].pt2 = nullpoint;
@@ -190,7 +153,7 @@ void initialize_rand_walls(point *point_array) {
 
   uint8_t pt1, pt2;
   randomSeed(getSeed());
-  uint8_t no_walls = random(144);
+  uint8_t no_walls = random(wall_max);
   if (DEBUG) {
     Serial.print("Printing walls, Amount: ");
     Serial.println(no_walls);
@@ -203,9 +166,9 @@ void initialize_rand_walls(point *point_array) {
       while ( 1 ) {}
     }
     // Get a cell number
-    pt1 = random(72);
-    while (pt1 % 9 == 8) {
-      pt1 = random(72);
+    pt1 = random(visible_pt + 1);
+    while (pt1 % map_x == map_x - 1) {
+      pt1 = random(visible_pt + 1);
     }
 
     options = get_options(pt1, options);
@@ -220,7 +183,7 @@ void initialize_rand_walls(point *point_array) {
 	Serial.print(" : ");
 	Serial.println(options[wallchoice]);
       }
-      if (pt2 != 255) {
+      if (pt2 != null) {
 	break;
       }
     }
@@ -262,10 +225,10 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t* options){
   uint8_t rightedge = 0;
   uint8_t botedge = 0;
   
-  if (pointvalue % 9 == 8) {
+  if (pointvalue % map_x == map_x - 1) {
     rightedge = 1;
   }
-  if (pointvalue > 71) {
+  if (pointvalue > visible_pt) {
     botedge = 1;
   }
   
@@ -278,12 +241,12 @@ uint8_t * get_options(uint8_t pointvalue, uint8_t* options){
     }
     if (!botedge) {
       // Not a bottom edge, therefore can add bottom neighbor
-      options[wallchoice] = pointvalue + 9;
+      options[wallchoice] = pointvalue + map_x;
       botedge = 1;
       continue;
     }
     // No valid edge, put in the dummy point
-    options[wallchoice] = 255;
+    options[wallchoice] = null;
   }
   return options;
 }
@@ -294,7 +257,7 @@ void print_all_walls() {
     This prints all the walls, their x/y coords to the serial monitor
    */
   if (DEBUG) {
-    for (uint8_t cell = 0; cell < 81; cell++) {
+    for (uint8_t cell = 0; cell < map_x * map_y; cell++) {
       for (uint8_t wall = 0; wall < 2; wall++) {
 	Serial.print("[");
 	Serial.print(cell);
@@ -322,7 +285,7 @@ void move_mouse_to(uint8_t pointlocation) {
     ie) This function could move the mouse from any spot on
     the map to any spot on the map
    */
-  if (pointlocation > 71 || pointlocation % 9 == 8) {
+  if (pointlocation > visible_pt || pointlocation % map_x == map_x - 1) {
     // Invalid pointlocation
   }
   else {
@@ -339,8 +302,9 @@ void random_cheese() {
     jump to a new location
    */
   while(1) {
-    uint8_t location = random(71);
-    if (location > 71 || location % 9 == 8 || location == mouse.cur_pos) {
+    uint8_t location = random(visible_pt + 1);
+    if (location > visible_pt || location % map_x == map_x - 1 || 
+	location == mouse.cur_pos) {
       continue;
     }
     else {
@@ -356,7 +320,7 @@ void draw_corners(point *point_array) {
     This function draws all the corners on the map as white pixels on
     the screen
    */
-  for (int pixel = 0; pixel < 81; pixel++) {
+  for (int pixel = 0; pixel < map_x * map_y; pixel++) {
     tft.drawPixel(point_array[pixel].x_coord, point_array[pixel].y_coord, ST7735_WHITE);
   }
 }
@@ -367,7 +331,7 @@ void draw_walls() {
     screen. Also draws one black pixel at the top left corner to
     account for the null walls
    */
-  for (int cell = 0; cell < 71; cell++) {
+  for (int cell = 0; cell < visible_pt; cell++) {
     for (int wall = 0; wall < 2; wall++) {     
       point apoint = wall_array[cell][wall].pt1;
       point bpoint = wall_array[cell][wall].pt2;
@@ -385,7 +349,7 @@ void draw_mouse(point *point_array) {
    */
   uint8_t xval;
   uint8_t yval;
-  if (mouse.prev_pos != 255) {
+  if (mouse.prev_pos != null) {
     xval = point_array[mouse.prev_pos].x_coord + 7;
     yval = point_array[mouse.prev_pos].y_coord + 7;
     tft.fillCircle(xval, yval, 4, ST7735_BLACK);
@@ -402,7 +366,7 @@ void draw_cheese(point *point_array) {
    */  
   uint8_t xval;
   uint8_t yval;
-  if (cheese.prev_pos != 255) {
+  if (cheese.prev_pos != null) {
     xval = point_array[cheese.prev_pos].x_coord + 7;
     yval = point_array[cheese.prev_pos].y_coord + 7;
     tft.fillCircle(xval, yval, 4, ST7735_BLACK);
@@ -468,9 +432,9 @@ uint8_t read_joy_input() {
   /*
     This function reads returns the left, right, up, down value of the
     joypad, where 0: up, 1: left, 2: down, 3: right
-    Else, if no input, selection == 255
+    Else, if no input, selection == null
    */
-  uint8_t selection = 255;
+  uint8_t selection = null;
   // Move cursor left
   if(analogRead(joyhor)>(joycenx+joyerr)) {
     selection = 1;
@@ -493,7 +457,7 @@ void draw_corner_select(uint8_t corner, point *point_array, uint16_t color) {
   /*
     This function draws a corner selector on the map as a small circle
    */
-  if (corner >= 81) {
+  if (corner >= map_x * map_y) {
     return;
   }
   tft.drawCircle(point_array[corner].x_coord, point_array[corner].y_coord, 2, color);
@@ -505,7 +469,7 @@ void clear_corner_select(uint8_t corner, point *point_array) {
     This function draws a black corner selector on the map. Esentially this is 
     the same as draw_corner_select except the color is default black
    */
-  if (corner >= 81) {
+  if (corner >= map_x * map_y) {
     return;
   }
   tft.drawCircle(point_array[corner].x_coord, point_array[corner].y_coord, 2, ST7735_BLACK);
@@ -539,12 +503,12 @@ void togglewall(uint8_t corner1, uint8_t corner2, point *point_array) {
     wallcorner = corner1;
   }
   
-  if (cell % 9 == 8) {
+  if (cell % map_x == map_x - 1) {
     drawtext("No extreme \nright edge \nallowed...");
     delay(1000);
     return;
   }
-  if (cell > 71) {
+  if (cell > visible_pt) {
     drawtext("No extreme \nbottom edge \nallowed...");
     delay(1000);
     return;
@@ -612,27 +576,27 @@ uint8_t move_to_corner(uint8_t corner, uint8_t direction) {
     corner, then returns the resulting corner, if the direction is
     invalid, the corner does not move
    */
-  if (direction > 3) { return corner; }
+  if (direction > offset) { return corner; }
   if (direction == 0) {
-    if (corner > 8) { return (corner - 9); }
+    if (corner > map_x - 1) { return (corner - map_x); }
     else { return corner; }
   }
   if (direction == 1) {
-    if (corner % 9 != 0) { return (corner - 1); }
+    if (corner % map_x != 0) { return (corner - 1); }
     else { return corner; }
   }
   if (direction == 2) {
-    if (corner < 72) { return (corner + 9); }
+    if (corner < visible_pt) { return (corner + map_x); }
     else { return corner; }
   }
-  if (direction == 3) {
-    if (corner % 9 != 8) { return (corner + 1); }
+  if (direction == offset) {
+    if (corner % map_x != map_x - 1) { return (corner + 1); }
     else { return corner; }
   }
 }
 
 void setup() {
-  path = (typeof(path)) malloc(sizeof(path) * 81);
+  path = (typeof(path)) malloc(sizeof(path) * map_x * map_y);
   initialize();
   initialize_joy();
   initialize_map(point_array);
@@ -662,7 +626,7 @@ void loop() {
   // Two different states; One for wall placement, One for mouse cycle
   // pause = 0; Simulate mouse finding cheese
   // pause = 1; Editor mode
-  uint8_t cornerpos = 255;
+  uint8_t cornerpos = null;
   trigger = 0;
 
   if (path_len == 0) { trigger = 1; }
@@ -677,7 +641,7 @@ void loop() {
     if (!trigger){
       if (pause) { 
 	pause = 0; 
-	cornerpos = 255;
+	cornerpos = null;
       }
       else { 
 	pause = 1; 
@@ -703,7 +667,7 @@ void loop() {
     uint8_t wjoytrigger = 0;
     while(1) {
       if (edtrigger == 0 && joytrigger == 0) { direction = read_joy_input();}
-      if (direction != 255) { joytrigger = 1;}
+      if (direction != null) { joytrigger = 1;}
       if (joytrigger == 1 && edtrigger == 0){
 	clear_corner_select(cornerpos, point_array);
 	cornerpos = move_to_corner(cornerpos, direction);
@@ -711,7 +675,7 @@ void loop() {
 	edtrigger = 1;
       }
       if (edtrigger == 1 && joytrigger == 1) {
-	if (read_joy_input() == 255) {
+	if (read_joy_input() == null) {
 	  edtrigger = 0;
 	  joytrigger = 0;
 	}
@@ -726,7 +690,7 @@ void loop() {
 	  if (wedtrigger == 0 && wjoytrigger == 0) {
 	    walldirection = read_joy_input();
 	  }
-	  if (walldirection != 255) {
+	  if (walldirection != null) {
 	    wjoytrigger = 1;
 	  }
 	  if (wjoytrigger == 1 && wedtrigger == 0){
@@ -736,7 +700,7 @@ void loop() {
 	    wedtrigger = 1;
 	  }
 	  if (wedtrigger == 1 && wjoytrigger == 1) {
-	    if (read_joy_input() == 255) {
+	    if (read_joy_input() == null) {
 	      wedtrigger = 0;
 	      wjoytrigger = 0;
 	    }
@@ -805,7 +769,7 @@ void loop() {
       }
     } 
     else {
-      if (path_len < 81) {
+      if (path_len < map_x * map_y) {
 	if (DEBUG) {
 	  Serial.print("Mouse has stepped: ");
 	  Serial.println(path_len - 1);
@@ -819,12 +783,14 @@ void loop() {
 	draw_corners(point_array);
 	path_len--;
 	if (path_len-1 == 0) {
+	  drawtext("Cheese found. Yum!");
+	  delay(1000);
 	  // Move the cheese to a new location
 	  refresh_cheese = 1;
 	}
 	delay(500);
       }
-      else if (path_len >= 81) {
+      else if (path_len >= map_x * map_y) {
 	// Shouldn't ever get here, but just in case
 	drawtext("No path exists, \nrefresh cheese");
 	refresh_cheese = 1;
