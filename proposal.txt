@@ -34,8 +34,8 @@ path finding, and queues.
 
 Milestones:
 
-* Create the super class entity which contains the mouse,
-cheese and walls. Implement displaying the objects on the grid.
+* Create the mouse, cheese and walls. Display the objects
+on the grid.
 
 * Implement pathfinding from the mouse to the cheese. Show the
 mouse moving from it's location to the cheese, respawning of 
