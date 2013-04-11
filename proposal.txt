@@ -44,8 +44,8 @@ the cheese in a new location after the path is completed.
 * Implement user inputted walls (Path obstacles) by the joystick.
 Users may create impossible mazes.
 
-* Implement valid maze creation (Valid as in maze has no 'dead'
-areas that cannot be reached).
+* Implement maze creation (Will be randomly generated, valid maze not
+  guaranteed).
 
 * Implement map/maze reset, LED light for no path exists
 
